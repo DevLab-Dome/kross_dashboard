@@ -95,7 +95,7 @@ def render_header_bar(
         with c1:
             d = deltas.get("Revenue")
             badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("Revenue (mese)", kpi.get("Revenue", "-"), badge)
+            _kpi_block("Revenue (mese)", kpi.get("Revenue", "-"), badge, help_text="Somma Totale revenue del mese")
 
         with c2:
             d = deltas.get("Occupazione")
@@ -106,7 +106,7 @@ def render_header_bar(
         with c3:
             d = deltas.get("Notti vendute")
             badge = _delta_badge(d, "", positive_is_good=True) if d is not None else None
-            _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge)
+            _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge, help_text="Somma notti vendute nel mese")
 
         with c4:
             d = deltas.get("ADR")
