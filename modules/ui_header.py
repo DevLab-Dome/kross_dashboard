@@ -72,7 +72,7 @@ def render_header_bar(
     dict con flag dei pulsanti: {"prev_clicked": bool, "next_clicked": bool}
     """
     deltas = deltas or {}
-    st.markdown("---")
+    st.markdown("")
     container = st.container()
     with container:
         # Riga 1: Navigazione mese
