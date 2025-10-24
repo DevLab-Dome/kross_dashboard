@@ -56,7 +56,7 @@ with col_sb_a:
                 st.sidebar.error(f"Errore nel parsing: {e}")
 
 with col_sb_b:
-    if st.button("Usa file demo", use_container_width=True):
+    if SHOW_DEMO and st.button("Usa file demo", use_container_width=True):
         demo_map = {
             ("Lavagnini My Place", 2024): "/mnt/data/Lavagnini_Forecast_01012024_31122024.xlsx",
             ("Lavagnini My Place", 2025): "/mnt/data/Lavagnini_Forecast_01012025_31122025.xlsx",
