@@ -188,7 +188,7 @@ if next_m == 13:
 prev_label = f"{calendar.month_name[prev_m]} {prev_y}"
 curr_label = f"{mese_nome} {active_y}"
 next_label = f"{calendar.month_name[next_m]} {next_y}"
-
+"""
 bar = st.container()
 with bar:
     c_prev, c_curr, c_next = st.columns([1,2,1])
@@ -200,7 +200,7 @@ with bar:
     with c_next:
         st.write("")
         st.button("▶", key="btn_next", use_container_width=True, on_click=go_next)
-
+"""
     c_l, c_c, c_r = st.columns([1,2,1])
     with c_l:
         st.markdown(f"<div style='text-align:center; color:#2c7a7b'>{prev_label}</div>", unsafe_allow_html=True)
