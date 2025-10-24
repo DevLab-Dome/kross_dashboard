@@ -5,6 +5,7 @@ import io, os, calendar
 from datetime import datetime
 import pandas as pd
 import streamlit as st
+st.set_page_config(page_title="Kross Dashboard", layout="wide")
 # --- Flag per mostrare/nascondere la sezione "Usa file demo"
 try:
     SHOW_DEMO = bool(st.secrets.get("SHOW_DEMO", True))
