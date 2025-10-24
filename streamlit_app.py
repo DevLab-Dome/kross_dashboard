@@ -171,15 +171,11 @@ with bar:
     with c_prev:
         st.write("")
         st.button("◀", key="btn_prev", use_container_width=True, on_click=go_prev)
-            st.session_state['active_month'] = prev_m
-            st.session_state['active_year'] = prev_y
     with c_curr:
         st.markdown(f"<div style='text-align:center; font-size:1.2rem; font-weight:700'>{curr_label}<br><span style='font-size:0.9rem; font-weight:400'>(anno di comparazione: {active_y-1})</span></div>", unsafe_allow_html=True)
     with c_next:
         st.write("")
         st.button("▶", key="btn_next", use_container_width=True, on_click=go_next)
-            st.session_state['active_month'] = next_m
-            st.session_state['active_year'] = next_y
 
     c_l, c_c, c_r = st.columns([1,2,1])
     with c_l:
