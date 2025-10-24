@@ -1,0 +1,5 @@
+# Configurazione DevLab – Kross Dashboard
+# Numero camere nominali (se non presente la colonna "Unità" nei file)
+rooms_default: 5
+currency_symbol: "€"
+locale_date_format: "%d/%m/%Y"   # formato atteso dal gestionale
