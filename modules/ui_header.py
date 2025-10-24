@@ -100,7 +100,7 @@ def render_header_bar(
         with c2:
             d = deltas.get("Occupazione")
             # Per Occupazione, delta espresso in punti percentuali (es. +3,87 pp) se passi float (0-100)
-            badge = _delta_badge(d, "%", positive_is_good=True) if d is not None else None
+            badge = _delta_badge(d, " pp", positive_is_good=True) if d is not None else None
             _kpi_block("Occupazione", kpi.get("Occupazione", "-"), badge, help_text="Camere vendute / (Camere * giorni)")
 
         with c3:
