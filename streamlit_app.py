@@ -81,7 +81,7 @@ deltas_header = {
 
 # Render header + collegamento pulsanti ◀ ▶
 res = render_header_bar(
-    month_label=curr_label,       # es. "Ottobre 2025"
+    month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',       # es. "Ottobre 2025"
     prev_month_label=prev_label,  # es. "Settembre 2025"
     next_month_label=next_label,  # es. "Novembre 2025"
     kpi=kpi_header,
