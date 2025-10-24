@@ -87,7 +87,7 @@ def render_header_bar(
         with nav_right:
             next_clicked = st.button(f"{next_month_label} ▶", key=f"{key_prefix}_next")
 
-        st.markdown("")
+        st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
 
         # Riga 2: KPI compatti (5 colonne)
         c1, c2, c3, c4, c5 = st.columns(5)
