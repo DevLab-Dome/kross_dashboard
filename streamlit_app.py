@@ -6,6 +6,22 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 st.set_page_config(page_title="Kross Dashboard", layout="wide")
+# === HEADER DASHBOARD (placeholder; sostituiremo con dati reali nel passo successivo) ===
+kpi_values = {
+    "Revenue": "€ 0,00",
+    "Occupazione": "0,00%",
+    "Notti vendute": "0",
+    "ADR": "€ 0,00",
+    "RevPAR": "€ 0,00",
+}
+_ = render_header_bar(
+    month_label="Ottobre 2025",
+    prev_month_label="Settembre",
+    next_month_label="Novembre",
+    kpi=kpi_values,
+    deltas=None,  # es.: {"Revenue": 0.0, "Occupazione": 0.0, "Notti vendute": 0.0, "ADR": 0.0, "RevPAR": 0.0}
+    key_prefix="hdr_main",
+)
 # --- Flag per mostrare/nascondere la sezione "Usa file demo"
 try:
     SHOW_DEMO = bool(st.secrets.get("SHOW_DEMO", True))
