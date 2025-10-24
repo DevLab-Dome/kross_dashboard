@@ -5,6 +5,11 @@ import io, os, calendar
 from datetime import datetime
 import pandas as pd
 import streamlit as st
+# --- Flag per mostrare/nascondere la sezione "Usa file demo"
+try:
+    SHOW_DEMO = bool(st.secrets.get("SHOW_DEMO", True))
+except Exception:
+    SHOW_DEMO = True
 import plotly.express as px
 
 from modules.data_loader import load_config, normalize_wide_excel
@@ -56,7 +61,7 @@ with col_sb_a:
                 st.sidebar.error(f"Errore nel parsing: {e}")
 
 with col_sb_b:
-    if st.button("Usa file demo", use_container_width=True):
+    if SHOW_DEMO and st.button("Usa file demo", use_container_width=True):
         demo_map = {
             ("Lavagnini My Place", 2024): "/mnt/data/Lavagnini_Forecast_01012024_31122024.xlsx",
             ("Lavagnini My Place", 2025): "/mnt/data/Lavagnini_Forecast_01012025_31122025.xlsx",
@@ -131,6 +136,24 @@ mese_nome = calendar.month_name[active_m]
 # ------------------
 # NAVIGAZIONE MESE (centered, prev/current/next)
 # ------------------
+# --- Callback affidabili per la navigazione mese ---
+def go_prev():
+    m = st.session_state['active_month'] - 1
+    y = st.session_state['active_year']
+    if m == 0:
+        m = 12
+        y -= 1
+    st.session_state['active_month'] = m
+    st.session_state['active_year'] = y
+
+def go_next():
+    m = st.session_state['active_month'] + 1
+    y = st.session_state['active_year']
+    if m == 13:
+        m = 1
+        y += 1
+    st.session_state['active_month'] = m
+    st.session_state['active_year'] = y
 
 prev_m = st.session_state['active_month'] - 1
 prev_y = st.session_state['active_year']
@@ -152,16 +175,12 @@ with bar:
     c_prev, c_curr, c_next = st.columns([1,2,1])
     with c_prev:
         st.write("")
-        if st.button("◀", use_container_width=True):
-            st.session_state['active_month'] = prev_m
-            st.session_state['active_year'] = prev_y
+        st.button("◀", key="btn_prev", use_container_width=True, on_click=go_prev)
     with c_curr:
         st.markdown(f"<div style='text-align:center; font-size:1.2rem; font-weight:700'>{curr_label}<br><span style='font-size:0.9rem; font-weight:400'>(anno di comparazione: {active_y-1})</span></div>", unsafe_allow_html=True)
     with c_next:
         st.write("")
-        if st.button("▶", use_container_width=True):
-            st.session_state['active_month'] = next_m
-            st.session_state['active_year'] = next_y
+        st.button("▶", key="btn_next", use_container_width=True, on_click=go_next)
 
     c_l, c_c, c_r = st.columns([1,2,1])
     with c_l:
