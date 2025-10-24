@@ -24,23 +24,56 @@ _ = render_header_bar(
     key_prefix="hdr_main",
 )
 """
-# === NUOVO HEADER con componente riutilizzabile ===
+# === NUOVO HEADER con KPI REALI ===
+# Filtro mese/anno attivi
+df_cur = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
+
+# Helper formattazione IT
+def _fmt_thousands(n: int) -> str:
+    s = f"{n:,}"
+    return s.replace(",", "X").replace(".", ",").replace("X", ".")
+
+def _fmt_eur(x: float) -> str:
+    s = f"{x:,.2f}"
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{CURRENCY} {s}"
+
+def _fmt_pct(x: float) -> str:
+    s = f"{x:,.2f}"
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{s}%"
+
+# Calcoli robusti (in linea con le nostre convenzioni)
+sold_nights = int(df_cur["occupied"].sum()) if not df_cur.empty and "occupied" in df_cur.columns else 0
+rooms_avail = float(df_cur["rooms_available"].sum()) if not df_cur.empty and "rooms_available" in df_cur.columns else 0.0
+revenue     = float(df_cur["revenue"].sum()) if not df_cur.empty and "revenue" in df_cur.columns else 0.0
+
+# Occupazione mensile = camere vendute nel mese / (camere nominali × giorni del mese)
+occ_pct = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
+
+# ADR = media giornaliera ADR, RevPAR = media giornaliera RevPAR
+adr    = float(df_cur["adr"].mean()) if not df_cur.empty and "adr" in df_cur.columns else 0.0
+revpar = float(df_cur["revpar"].mean()) if not df_cur.empty and "revpar" in df_cur.columns else 0.0
+
+# Dizionario KPI per l'header (stringhe già formattate)
+kpi_header = {
+    "Revenue": _fmt_eur(revenue),
+    "Occupazione": _fmt_pct(occ_pct),
+    "Notti vendute": _fmt_thousands(sold_nights),
+    "ADR": _fmt_eur(adr),
+    "RevPAR": _fmt_eur(revpar),
+}
+
+# Render header + collegamento pulsanti ◀ ▶
 res = render_header_bar(
     month_label=curr_label,       # es. "Ottobre 2025"
     prev_month_label=prev_label,  # es. "Settembre 2025"
     next_month_label=next_label,  # es. "Novembre 2025"
-    kpi={
-        "Revenue": "—",
-        "Occupazione": "—",
-        "Notti vendute": "—",
-        "ADR": "—",
-        "RevPAR": "—",
-    },   # placeholder: nel prossimo passo li colleghiamo ai tuoi KPI reali
-    deltas=None,
+    kpi=kpi_header,
+    deltas=None,                  # nel prossimo step collegheremo i Δ YoY
     key_prefix="hdr_main",
 )
 
-# Collega i pulsanti ◀ ▶ alla tua logica esistente
 if res.get("prev_clicked"):
     go_prev()
     st.rerun()
