@@ -24,6 +24,29 @@ _ = render_header_bar(
     key_prefix="hdr_main",
 )
 """
+# === NUOVO HEADER con componente riutilizzabile ===
+res = render_header_bar(
+    month_label=curr_label,       # es. "Ottobre 2025"
+    prev_month_label=prev_label,  # es. "Settembre 2025"
+    next_month_label=next_label,  # es. "Novembre 2025"
+    kpi={
+        "Revenue": "—",
+        "Occupazione": "—",
+        "Notti vendute": "—",
+        "ADR": "—",
+        "RevPAR": "—",
+    },   # placeholder: nel prossimo passo li colleghiamo ai tuoi KPI reali
+    deltas=None,
+    key_prefix="hdr_main",
+)
+
+# Collega i pulsanti ◀ ▶ alla tua logica esistente
+if res.get("prev_clicked"):
+    go_prev()
+    st.rerun()
+if res.get("next_clicked"):
+    go_next()
+    st.rerun()
 # --- Flag per mostrare/nascondere la sezione "Usa file demo"
 try:
     SHOW_DEMO = bool(st.secrets.get("SHOW_DEMO", True))
