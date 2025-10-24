@@ -1,0 +1,32 @@
+# DevLab — Workflow & Checklist (Staging/Produzione)
+
+## Ambiente
+- **Staging**: branch `develop` su Streamlit Cloud (deploy automatico ad ogni push).
+- **Produzione**: **tag** Git (checkpoint, es. `v0.3.2`) su Streamlit Cloud.
+
+## Regole operative (vincolanti)
+- Lavorare **UN PUNTO ALLA VOLTA**. Non passare al punto successivo senza conferma.
+- Sviluppo solo su **`develop`** → poi **PR `develop → main`**.
+- Produzione solo da **tag** creati su `main` (versioni stabili).
+
+## Setup permanenti (già fatti, tenere)
+- `runtime.txt = 3.11` (fissa Python in Cloud).
+- Secret Cloud: `SHOW_DEMO = false` (nasconde sezione “Usa file demo”).
+- `main` protetto (PR obbligatoria; “Require approvals” può restare OFF se lavori da solo).
+
+## Mini-checklist per ogni ciclo
+1) **Sviluppo** su `develop`: commit → push → Staging si aggiorna.
+2) **Verifica** su Staging.
+3) **PR** `develop → main` → Merge.
+4) **Release/Tag** su `main` (es. `vX.Y.Z`).
+5) Streamlit **Produzione**: punta al **nuovo tag** → Deploy.
+
+## Note UI già implementate
+- Sidebar a scomparsa; due menu (Struttura/Anno).
+- KPI con **2 decimali**; **delta numerici** (verde/rosso).
+- Navigazione mese con **callback** (`◀ ▶` reattivi).
+- Blocco “Usa file demo” disattivabile via secret.
+
+## Convenzioni commit/tag
+- Commit: `feat: …`, `fix: …`, `chore: …`, `docs: …`
+- Versioni: `vMAJOR.MINOR.PATCH` (es. `v0.4.0`, `v0.3.3`).
