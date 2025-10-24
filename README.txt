@@ -21,3 +21,4 @@
 - Le righe "Totale mese" vengono ignorate automaticamente.
 - Le medie ADR/RevPAR sono calcolate come media giornaliera; Revenue è la somma mensile; Occupazione = Notti vendute / (Camere nominali × Giorni).
 - Il numero di camere nominali è preso dalla colonna "Unità" (mode del mese); se assente, usa `rooms_default` in config.yaml.
+Staging OK — test del deploy automatico.
