@@ -5,6 +5,11 @@ import io, os, calendar
 from datetime import datetime
 import pandas as pd
 import streamlit as st
+# --- Flag per mostrare/nascondere la sezione "Usa file demo"
+try:
+    SHOW_DEMO = bool(st.secrets.get("SHOW_DEMO", True))
+except Exception:
+    SHOW_DEMO = True
 import plotly.express as px
 
 from modules.data_loader import load_config, normalize_wide_excel
