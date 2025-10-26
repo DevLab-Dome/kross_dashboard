@@ -262,6 +262,29 @@ if res.get("next_clicked"):
 # -----------------------------------------------------------------------------
 # KPI ANNO CORRENTE (aggregati sull'anno attivo) + YoY ANNO  —  ROBUSTO AI NOMI COLONNA
 # -----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# STRISCIA ANNO (solo navigazione ◀ ▶, senza KPI)
+# -----------------------------------------------------------------------------
+year_prev_label = f"{active_y - 1}"
+year_curr_label = f"Anno {active_y}"
+year_next_label = f"{active_y + 1}"
+
+res_y = render_header_bar(
+    month_label=year_curr_label,
+    prev_month_label=year_prev_label,
+    next_month_label=year_next_label,
+    kpi={"Revenue": "—", "Occupazione": "—", "Notti vendute": "—", "ADR": "—", "RevPAR": "—"},
+    deltas=None,
+    key_prefix="hdr_year",
+    show_kpis=False,   # << solo barra a bottoni
+)
+if res_y.get("prev_clicked"):
+    go_prev_year()
+    st.rerun()
+if res_y.get("next_clicked"):
+    go_next_year()
+    st.rerun()
+
 def _sum_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
     """Somma la prima colonna esistente nell'elenco, altrimenti 0."""
     if df is None or df.empty:
