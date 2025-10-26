@@ -12,41 +12,64 @@ import streamlit as st
 
 from modules.ui_header import render_header_bar, render_year_bar
 
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+import io
+import os
+import calendar
+from datetime import datetime
+
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+
+from modules.ui_header import render_header_bar, render_year_bar
+from modules.data_loader import load_config, normalize_wide_excel
+from modules.metrics import month_overview, next_6_months, filter_by_properties
+
+
 def inject_base_styles():
-    import streamlit as st
-    st.markdown(
-        """
-        <style>
-        :root{
-            --dl-font: ui-sans-serif, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-            --dl-muted:#6b7280;
-            --dl-fg:#0f172a;
-            --dl-accent:#1f6feb;
-            --dl-bg:#ffffff;
-            --dl-ring:rgba(31,111,235,.25);
-            --dl-radius:10px;
-            --dl-pad:10px 12px;
-            --dl-gap:8px;
-            --dl-chip-bg:#f8fafc;
-            --dl-chip-fg:#0f172a;
-        }
+    st.markdown("""
+<style>
+:root{
+    --dl-font: ui-sans-serif, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    --dl-muted:#6b7280;
+    --dl-fg:#0f172a;
+    --dl-accent:#1f6feb;
+    --dl-bg:#ffffff;
+    --dl-ring:rgba(31,111,235,.25);
+    --dl-radius:10px;
+    --dl-pad:10px 12px;
+    --dl-gap:8px;
+    --dl-chip-bg:#f8fafc;
+    --dl-chip-fg:#0f172a;
+}
 
-        .dl-root, .dl-root *{ font-family: var(--dl-font); letter-spacing: .2px; }
+/* tipografia generale */
+.dl-root, .dl-root *{
+    font-family: var(--dl-font);
+    letter-spacing: .2px;
+}
 
-        .dl-strip{
-            display:flex; align-items:center; gap: var(--dl-gap);
-            background: var(--dl-bg); border:1px solid #e5e7eb;
-            border-radius: var(--dl-radius); padding: 8px 10px; margin: 6px 0;
-        }
+/* contenitore strip (ANNO/MESE) */
+.dl-strip{
+    display:flex; align-items:center; gap: var(--dl-gap);
+    background: var(--dl-bg); border:1px solid #e5e7eb;
+    border-radius: var(--dl-radius); padding: 8px 10px; margin: 6px 0;
+}
 
-        .dl-title{
-            font-weight:600; color:var(--dl-fg); white-space:nowrap;
-            padding-right:8px; border-right:1px solid #e5e7eb;
-        }
+/* titolo sezione a sinistra */
+.dl-title{
+    font-weight:600; color:var(--dl-fg); white-space:nowrap;
+    padding-right:8px; border-right:1px solid #e5e7eb;
+}
 
-        .dl-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+/* area bottoni mesi/anni */
+.dl-actions{ display:flex; gap:6px; flex-wrap:wrap; }
 
-       div.stButton>button{
+/* stile coerente per i pulsanti Streamlit */
+div.stButton>button{
     padding: var(--dl-pad);
     border-radius: 8px;
     border:1px solid #cbd5e1;        /* contrasto bordo ↑ */
@@ -55,28 +78,31 @@ def inject_base_styles():
     font-weight: 600;
     transition: border-color .12s ease, box-shadow .12s ease;
 }
-        div.stButton>button:hover{ border-color: var(--dl-accent); box-shadow:0 0 0 3px var(--dl-ring); }
-        div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
+div.stButton>button:hover{ border-color: var(--dl-accent); box-shadow:0 0 0 3px var(--dl-ring); }
+div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
 
-        .dl-chip{
-            background: var(--dl-chip-bg);
-            color: var(--dl-chip-fg);
-            border-radius:999px; padding:4px 10px; font-size:0.9rem; font-weight:600;
-        }
+/* chip “attivo/selezionato” (mese/anno corrente) */
+.dl-chip{
+    background: var(--dl-chip-bg);
+    color: var(--dl-chip-fg);
+    border-radius:999px; padding:4px 10px; font-size:0.9rem; font-weight:600;
+}
 
-        .dl-hint{ color:var(--dl-muted); font-size:0.85rem; }
+/* micro-testo secondario */
+.dl-hint{ color:var(--dl-muted); font-size:0.85rem; }
 
-        /* --- Z.6: vertical alignment fine-tuning --- */
-        .dl-strip{ align-items: center; }
-        div.stButton{ margin: 0 !important; }
-        div.stButton > button{
-            height: 34px;
-            padding: 6px 10px;
-            line-height: 20px;
-            vertical-align: middle;
-        }
-        .dl-actions{ align-items: center; display:flex; flex-wrap:wrap; gap:6px; }
-        /* --- Z.6: stato attivo/disabilitato (look chip e niente click) --- */
+/* --- Z.6: vertical alignment fine-tuning --- */
+.dl-strip{ align-items: center; }
+div.stButton{ margin: 0 !important; }
+div.stButton > button{
+    height: 34px;
+    padding: 6px 10px;
+    line-height: 20px;
+    vertical-align: middle;
+}
+.dl-actions{ align-items: center; display:flex; flex-wrap:wrap; gap:6px; }
+
+/* --- Z.6: stato attivo/disabilitato --- */
 div.stButton > button:disabled{
     background: var(--dl-chip-bg) !important;
     color: var(--dl-chip-fg) !important;
@@ -87,10 +113,9 @@ div.stButton > button:disabled{
     box-shadow: none !important;
     pointer-events: none !important;
 }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+</style>
+""", unsafe_allow_html=True)
+
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
