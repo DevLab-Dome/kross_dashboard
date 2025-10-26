@@ -16,6 +16,8 @@ from modules.metrics import month_overview, next_6_months, filter_by_properties
 # PAGE CONFIG + TITLE
 # -----------------------------------------------------------------------------
 st.set_page_config(page_title="DevLab – Kross Dashboard", layout="wide", initial_sidebar_state="collapsed")
+inject_base_styles()
+st.markdown('<div class="dl-root"></div>', unsafe_allow_html=True)
 st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
 # -----------------------------------------------------------------------------
