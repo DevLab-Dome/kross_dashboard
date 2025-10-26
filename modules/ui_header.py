@@ -75,7 +75,7 @@ def render_year_nav(
     next_label: str | None = None,
 ) -> dict:
     """
-    Due bottoni per navigare tra gli anni (PREV / NEXT).
+    Due bottoni PREV/NEXT con il titolo 'Anno {current_year}' centrato tra i due.
     Ritorna: {"prev_clicked": bool, "next_clicked": bool}
     """
     import streamlit as st  # ok anche se già importato in alto
@@ -83,13 +83,18 @@ def render_year_nav(
     prev_text = prev_label if prev_label is not None else str(current_year - 1)
     next_text = next_label if next_label is not None else str(current_year + 1)
 
-    cols = st.columns([1, 1])
+    cols = st.columns([1, 3, 1])
     with cols[0]:
         prev_clicked = st.button(prev_text, key=f"{key_prefix}_prev")
     with cols[1]:
+        st.markdown(
+            f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>Anno {current_year}</div>",
+            unsafe_allow_html=True,
+        )
+    with cols[2]:
         next_clicked = st.button(next_text, key=f"{key_prefix}_next")
 
-    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked} 
+    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # --- HEADER (MESE) ---------------------------------------------------------------------------
 
