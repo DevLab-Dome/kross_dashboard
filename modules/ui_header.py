@@ -1,110 +1,57 @@
-"""
-ui_header.py — Header & Year bars for Kross Dashboard
-DevLab – Hospitality Software
-
-Componenti riutilizzabili per:
-- barra mese con navigazione ◀ ▶ (opzionale: mostrare i 5 KPI del mese)
-- barra anno (5 KPI annuali)
-
-Convenzioni:
-- Occupazione: badge Δ in punti percentuali (pp)
-- Revenue/Notti: Δ in valore assoluto
-- ADR/RevPAR: Δ in valore assoluto
-"""
-
+# -*- coding: utf-8 -*-
 from __future__ import annotations
+
 from typing import Dict, Optional
 import streamlit as st
-def inject_base_styles():
-    import streamlit as st
-    st.markdown(
-        """
-        <style>
-        :root{
-            --dl-font: ui-sans-serif, -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-            --dl-muted:#6b7280;
-            --dl-fg:#0f172a;
-            --dl-accent:#1f6feb;
-            --dl-bg:#ffffff;
-            --dl-ring:rgba(31,111,235,.25);
-            --dl-radius:10px;
-            --dl-pad:10px 12px;
-            --dl-gap:8px;
-            --dl-chip-bg:#f8fafc;
-            --dl-chip-fg:#0f172a;
-        }
-        .dl-root, .dl-root *{ font-family: var(--dl-font); letter-spacing: .2px; }
-        .dl-strip{ display:flex; align-items:center; gap: var(--dl-gap); background: var(--dl-bg); border:1px solid #e5e7eb; border-radius: var(--dl-radius); padding: 8px 10px; margin: 6px 0; }
-        .dl-title{ font-weight:600; color:var(--dl-fg); white-space:nowrap; padding-right:8px; border-right:1px solid #e5e7eb; }
-        .dl-actions{ display:flex; gap:6px; flex-wrap:wrap; }
-        div.stButton>button{ padding: var(--dl-pad); border-radius: 8px; border:1px solid #d1d5db; background:#fff; }
-        div.stButton>button:hover{ border-color: var(--dl-accent); box-shadow:0 0 0 3px var(--dl-ring); }
-        div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
-        .dl-chip{ background: var(--dl-chip-bg); color: var(--dl-chip-fg); border-radius:999px; padding:4px 10px; font-size:0.9rem; font-weight:600; }
-        .dl-hint{ color:var(--dl-muted); font-size:0.85rem; }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
 
-# --- STYLE HELPERS ---------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Helpers grafici (badge Δ e blocchi KPI)
+# -----------------------------------------------------------------------------
+def _delta_badge(delta: Optional[float], suffix: str = "", positive_is_good: bool = True) -> str:
+    if delta is None:
+        return ""
+    good = delta >= 0 if positive_is_good else delta <= 0
+    color = "#1a7f37" if good else "#b60205"
+    sign = "+" if delta > 0 else ""
+    val = f"{sign}{delta:.2f}{suffix}".replace(".", ",")
+    return f"<span style='margin-left:6px;color:{color};font-weight:700'>{val}</span>"
 
-def _delta_badge(value: float, suffix: str = "", positive_is_good: bool = True) -> str:
-    """Ritorna HTML per badge delta (verde=positivo, rosso=negativo)."""
-    color_pos = "#138000"  # verde
-    color_neg = "#C00000"  # rosso
-    sign = "+" if value > 0 else ""
-    good = (value >= 0 and positive_is_good) or (value < 0 and not positive_is_good)
-    color = color_pos if good else color_neg
-    return f'<span style="font-weight:600;color:{color}">{sign}{value:,.2f}{suffix}</span>'
-
-def _kpi_block(title: str, value: str, delta_html: Optional[str] = None, help_text: Optional[str] = None) -> None:
-    """Blocco KPI compatto con titolo, valore e (opzionale) delta colorato."""
-    st.markdown(f"<div style='font-size:0.95rem;font-weight:600'>{title}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div style='font-size:2.0rem;line-height:1.2;font-weight:400'>{value}</div>", unsafe_allow_html=True)
-    if delta_html:
-        st.markdown(delta_html, unsafe_allow_html=True)
+def _kpi_block(title: str, value_fmt: str, badge_html: Optional[str] = None, help_text: Optional[str] = None) -> None:
     if help_text:
         st.caption(help_text)
-        
-# --- NAVIGAZIONE ANNO ------------------------------------------------------------------------
-def render_year_nav(
-    current_year: int,
-    key_prefix: str = "yhdr",
-    prev_label: str | None = None,
-    next_label: str | None = None,
-) -> dict:
-    import streamlit as st
+    st.markdown(f"<div style='font-size:0.95rem;font-weight:600'>{title}</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div style='font-size:1.2rem;font-weight:800'>{value_fmt}{badge_html or ''}</div>",
+        unsafe_allow_html=True,
+    )
 
-    prev_text = prev_label if prev_label is not None else str(current_year - 1)
-    next_text = next_label if next_label is not None else str(current_year + 1)
-
-    # Griglia identica ai KPI: 5 colonne -> [Revenue][Occ][Notti][ADR][RevPAR]
+# -----------------------------------------------------------------------------
+# NAV 5 colonne (prev su col 1, centro su col 3, next su col 5) – base per ANNO/MESE
+# -----------------------------------------------------------------------------
+def _render_nav_5cols(prev_text: str, center_html: str, next_text: str, key_prefix: str) -> Dict[str, bool]:
     g1, g2, g3, g4, g5 = st.columns(5)
 
-    # 1) Bottone PREV centrato sulla colonna "Revenue"
     with g1:
-        a, b, c = st.columns([1, 1, 1])  # b è il centro
-        with b:
+        _l, _c, _r = st.columns([1, 1, 1])    # bottone centrato
+        with _c:
             prev_clicked = st.button(prev_text, key=f"{key_prefix}_prev")
 
-    # 2) Titolo centrato perfetto nella colonna centrale (3ª col)
     with g3:
         st.markdown(
-            f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>Anno {current_year}</div>",
+            f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>{center_html}</div>",
             unsafe_allow_html=True,
         )
 
-    # 3) Bottone NEXT centrato sulla colonna "RevPAR medio"
     with g5:
-        a2, b2, c2 = st.columns([1, 1, 1])  # b2 è il centro
-        with b2:
+        _l2, _c2, _r2 = st.columns([1, 1, 1])  # bottone centrato
+        with _c2:
             next_clicked = st.button(next_text, key=f"{key_prefix}_next")
 
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
-    
-# --- HEADER (MESE) ---------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Header (MESE): nav + (opzionali) KPI mese
+# -----------------------------------------------------------------------------
 def render_header_bar(
     month_label: str,
     prev_month_label: str,
@@ -114,124 +61,98 @@ def render_header_bar(
     key_prefix: str = "hdr",
     show_kpis: bool = True,
 ) -> Dict[str, bool]:
-    """
-    Barra superiore della dashboard (mese corrente).
-    Ritorna: {"prev_clicked": bool, "next_clicked": bool}
-    """
+    """Barra superiore della dashboard (mese corrente)."""
     deltas = deltas or {}
+    st.markdown("")  # separatore superiore
 
-    # Separatore superiore (vuoto, niente riga)
-    st.markdown("")
+    with st.container():
+        clicks = _render_nav_5cols(
+            prev_text=prev_month_label,
+            center_html=month_label,
+            next_text=next_month_label,
+            key_prefix=key_prefix,
+        )
 
-    container = st.container()
-    with container:
-        # Navigazione allineata su 5 colonne (coerente con la griglia KPI)
-        g1, g2, g3, g4, g5 = st.columns(5)
-
-        # (1) PREV centrato sulla colonna 1 (allineata a "Revenue")
-        with g1:
-            _l, _c, _r = st.columns([1, 1, 1])
-            with _c:
-                prev_clicked = st.button(
-                    prev_month_label if prev_month_label else "—",
-                    key=f"{key_prefix}_prev",
-                )
-
-        # (2) Etichetta centrale nella colonna 3 (centro griglia)
-        with g3:
-            st.markdown(
-                f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>{month_label}</div>",
-                unsafe_allow_html=True,
-            )
-
-        # (3) NEXT centrato sulla colonna 5 (allineata a "RevPAR medio")
-        with g5:
-            _l2, _c2, _r2 = st.columns([1, 1, 1])
-            with _c2:
-                next_clicked = st.button(
-                    next_month_label if next_month_label else "—",
-                    key=f"{key_prefix}_next",
-                )
-
-        # Spacer sottile
         st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
 
-        # Riga 2: KPI compatti (opzionale)
         if show_kpis:
             c1, c2, c3, c4, c5 = st.columns(5)
 
             with c1:
                 d = deltas.get("Revenue")
-                badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-                _kpi_block("Revenue (mese)", kpi.get("Revenue", "-"), badge, help_text="Somma Totale revenue del mese")
-
+                _kpi_block("Revenue (mese)", kpi.get("Revenue", "-"),
+                           _delta_badge(d, "€", True) if d is not None else None,
+                           "Somma Totale revenue del mese")
             with c2:
                 d = deltas.get("Occupazione")
-                badge = _delta_badge(d, " pp", positive_is_good=True) if d is not None else None
-                _kpi_block("Occupazione", kpi.get("Occupazione", "-"), badge, help_text="Camere vendute / (Camere * giorni)")
-
+                _kpi_block("Occupazione", kpi.get("Occupazione", "-"),
+                           _delta_badge(d, " pp", True) if d is not None else None,
+                           "Camere vendute / (Camere * giorni)")
             with c3:
                 d = deltas.get("Notti vendute")
-                badge = _delta_badge(d, "", positive_is_good=True) if d is not None else None
-                _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge, help_text="Somma notti vendute nel mese")
-
+                _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"),
+                           _delta_badge(d, "", True) if d is not None else None,
+                           "Somma notti vendute nel mese")
             with c4:
                 d = deltas.get("ADR")
-                badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-                _kpi_block("ADR", kpi.get("ADR", "-"), badge, help_text="Media giornaliera ADR")
-
+                _kpi_block("ADR", kpi.get("ADR", "-"),
+                           _delta_badge(d, "€", True) if d is not None else None,
+                           "Media giornaliera ADR")
             with c5:
                 d = deltas.get("RevPAR")
-                badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-                _kpi_block("RevPAR", kpi.get("RevPAR", "-"), badge, help_text="Media giornaliera RevPAR")
+                _kpi_block("RevPAR", kpi.get("RevPAR", "-"),
+                           _delta_badge(d, "€", True) if d is not None else None,
+                           "Media giornaliera RevPAR")
 
-        # Separatore inferiore
         st.markdown("---")
 
-    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
+    return clicks
 
-# --- YEAR BAR (ANNO) -------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Year NAV (solo bottoni/label – identica struttura/sizing della nav mese)
+# -----------------------------------------------------------------------------
+def render_year_nav(current_year: int, key_prefix: str = "ynav") -> Dict[str, bool]:
+    prev_text = str(current_year - 1)
+    next_text = str(current_year + 1)
+    center_html = f"Anno {current_year}"
+    return _render_nav_5cols(prev_text, center_html, next_text, key_prefix)
 
+# -----------------------------------------------------------------------------
+# Barra KPI per l'ANNO (5 KPI, senza bottoni)
+# -----------------------------------------------------------------------------
 def render_year_bar(
-    title_html: str,
+    title_html: str,   # mantenuto per compatibilità
     kpi: Dict[str, str],
     deltas: Optional[Dict[str, float]] = None,
     key_prefix: str = "ybar",
 ) -> None:
-    """
-    Barra KPI per l'ANNO (5 KPI, senza bottoni).
-    - title_html: es. "Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs 2024)</span>"
-    - kpi: {"Revenue": "...", "Occupazione": "...", "Notti vendute": "...", "ADR": "...", "RevPAR": "..."}
-    - deltas: differenze YoY (Occupazione in pp)
-    """
     deltas = deltas or {}
-    box = st.container()
-    with box:
+    c1, c2, c3, c4, c5 = st.columns(5)
 
-        c1, c2, c3, c4, c5 = st.columns(5)
+    with c1:
+        d = deltas.get("Revenue")
+        _kpi_block("Revenue (anno)", kpi.get("Revenue", "-"),
+                   _delta_badge(d, "€", True) if d is not None else None,
+                   "Somma Totale revenue dell'anno")
+    with c2:
+        d = deltas.get("Occupazione")
+        _kpi_block("Occupazione", kpi.get("Occupazione", "-"),
+                   _delta_badge(d, " pp", True) if d is not None else None,
+                   "Notti / Camere disponibili * 100")
+    with c3:
+        d = deltas.get("Notti vendute")
+        _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"),
+                   _delta_badge(d, "", True) if d is not None else None,
+                   "Somma notti vendute nell'anno")
+    with c4:
+        d = deltas.get("ADR")
+        _kpi_block("ADR medio", kpi.get("ADR", "-"),
+                   _delta_badge(d, "€", True) if d is not None else None,
+                   "Media giornaliera ADR (anno)")
+    with c5:
+        d = deltas.get("RevPAR")
+        _kpi_block("RevPAR medio", kpi.get("RevPAR", "-"),
+                   _delta_badge(d, "€", True) if d is not None else None,
+                   "Media giornaliera RevPAR (anno)")
 
-        with c1:
-            d = deltas.get("Revenue")
-            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("Revenue (anno)", kpi.get("Revenue", "-"), badge, help_text="Somma Totale revenue dell'anno")
-
-        with c2:
-            d = deltas.get("Occupazione")
-            badge = _delta_badge(d, " pp", positive_is_good=True) if d is not None else None
-            _kpi_block("Occupazione", kpi.get("Occupazione", "-"), badge, help_text="Notti / Camere disponibili * 100")
-
-        with c3:
-            d = deltas.get("Notti vendute")
-            badge = _delta_badge(d, "", positive_is_good=True) if d is not None else None
-            _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge, help_text="Somma notti vendute nell'anno")
-
-        with c4:
-            d = deltas.get("ADR")
-            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("ADR medio", kpi.get("ADR", "-"), badge, help_text="Media giornaliera ADR (anno)")
-
-        with c5:
-            d = deltas.get("RevPAR")
-            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("RevPAR medio", kpi.get("RevPAR", "-"), badge, help_text="Media giornaliera RevPAR (anno)")
     st.markdown("---")
