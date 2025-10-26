@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import io, os, calendar
+import io
+import os
+import calendar
 from datetime import datetime
 
 import pandas as pd
@@ -9,6 +11,7 @@ import plotly.express as px
 import streamlit as st
 
 from modules.ui_header import render_header_bar, render_year_bar
+
 def inject_base_styles():
     import streamlit as st
     st.markdown(
