@@ -449,30 +449,6 @@ deltas_year = {
 }
 title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
 
-# --- STRISCIA ANNO: solo navigazione PREV/NEXT ---
-st.markdown('<div class="dl-strip">', unsafe_allow_html=True)
-_cols = st.columns([1, 5])
-with _cols[0]:
-    st.markdown('<span class="dl-title">ANNO</span>', unsafe_allow_html=True)
-with _cols[1]:
-    st.markdown('<div class="dl-actions">', unsafe_allow_html=True)
-    ynav = render_year_nav(
-        current_year=active_y,          # active_y deve essere già nel contesto
-        key_prefix="yhdr_main",
-        prev_label=str(active_y - 1),
-        next_label=str(active_y + 1),
-    )
-    st.markdown('</div>', unsafe_allow_html=True)  # chiude .dl-actions
-st.markdown('</div>', unsafe_allow_html=True)      # chiude .dl-strip
-
-# Gestione click ANNO
-if ynav.get("prev_clicked"):
-    st.session_state["active_y"] = active_y - 1
-    st.rerun()
-if ynav.get("next_clicked"):
-    st.session_state["active_y"] = active_y + 1
-    st.rerun()
-
 # --- KPI ANNO (fuori dalla strip) ---
 render_year_bar(
     title_html=title_html,
