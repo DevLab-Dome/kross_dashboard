@@ -517,3 +517,4 @@ with c2:
 st.caption("Formule DevLab: Occupazione = Notti vendute / (Camere nominali × Giorni del mese); "
            "ADR/RevPAR = media giornaliera. Aggregazione: somma per Revenue e Notti; medie per ADR/RevPAR; "
            "Occupazione ricalcolata su camere disponibili del mese.")
+"""
