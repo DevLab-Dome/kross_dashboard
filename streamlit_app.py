@@ -133,6 +133,17 @@ def inject_base_styles():
         """,
         unsafe_allow_html=True
     )
+        /* --- Z.6: stato attivo/disabilitato (look chip e niente click) --- */
+div.stButton > button:disabled{
+    background: var(--dl-chip-bg) !important;
+    color: var(--dl-chip-fg) !important;
+    border-color: #cbd5e1 !important;
+    font-weight: 700 !important;
+    cursor: default !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+    pointer-events: none !important;
+}
         </style>
         """,
         unsafe_allow_html=True
