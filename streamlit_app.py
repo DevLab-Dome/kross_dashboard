@@ -124,6 +124,7 @@ else:
     adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
     revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
     # Presentazione (stile KPI semplice)
+    """
     st.markdown("### Anno corrente")
     st.caption(f"Analisi {active_y} (vs {active_y-1})")
 
@@ -169,6 +170,30 @@ with c5:
     st.caption("Media giornaliera RevPAR (anno)")
 
 st.markdown("---")
+"""
+    # === ANNO CORRENTE con componente ===
+kpi_year = {
+    "Revenue": _fmt_eur(revenue_y),
+    "Occupazione": _fmt_pct(occ_pct_y),
+    "Notti vendute": _fmt_thousands(sold_nights_y),
+    "ADR": _fmt_eur(adr_y),
+    "RevPAR": _fmt_eur(revpar_y),
+}
+deltas_year = {
+    "Revenue": revenue_y - revenue_y_py,
+    "Occupazione": occ_pct_y - occ_pct_y_py,        # in pp
+    "Notti vendute": sold_nights_y - sold_nights_y_py,
+    "ADR": adr_y - adr_y_py,
+    "RevPAR": revpar_y - revpar_y_py,
+}
+title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
+
+render_year_bar(
+    title_html=title_html,
+    kpi=kpi_year,
+    deltas=deltas_year,
+    key_prefix="ybar_main",
+)
 
     # Presentazione (stile KPI semplice)
     st.markdown("### Anno corrente")
