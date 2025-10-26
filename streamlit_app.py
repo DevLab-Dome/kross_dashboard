@@ -12,7 +12,7 @@ import streamlit as st
 
 from modules.ui_header import render_header_bar, render_yar_bar
 from modules.data_loader import load_config, normalize_wide_excel
-from module.metrics import month_overview next_6_months, filter_by_properties
+from modules.metrics import month_overview, next_6_months, filter_by_properties
 
 def inject_base_styles():
     st.markdown("""
