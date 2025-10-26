@@ -91,33 +91,33 @@ def render_header_bar(
         st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
 
         # Riga 2: KPI compatti (5 colonne)
-        c1, c2, c3, c4, c5 = st.columns(5)
+if show_kpis:
+    c1, c2, c3, c4, c5 = st.columns(5)
 
-        with c1:
-            d = deltas.get("Revenue")
-            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("Revenue (mese)", kpi.get("Revenue", "-"), badge, help_text="Somma Totale revenue del mese")
+    with c1:
+        d = deltas.get("Revenue")
+        badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
+        _kpi_block("Revenue (mese)", kpi.get("Revenue", "-"), badge)
 
-        with c2:
-            d = deltas.get("Occupazione")
-            # Per Occupazione, delta espresso in punti percentuali (es. +3,87 pp) se passi float (0-100)
-            badge = _delta_badge(d, " pp", positive_is_good=True) if d is not None else None
-            _kpi_block("Occupazione", kpi.get("Occupazione", "-"), badge, help_text="Camere vendute / (Camere * giorni)")
+    with c2:
+        d = deltas.get("Occupazione")
+        badge = _delta_badge(d, " pp", positive_is_good=True) if d is not None else None
+        _kpi_block("Occupazione", kpi.get("Occupazione", "-"), badge, help_text="Camere vendute / (Camere * giorni)")
 
-        with c3:
-            d = deltas.get("Notti vendute")
-            badge = _delta_badge(d, "", positive_is_good=True) if d is not None else None
-            _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge, help_text="Somma notti vendute nel mese")
+    with c3:
+        d = deltas.get("Notti vendute")
+        badge = _delta_badge(d, "", positive_is_good=True) if d is not None else None
+        _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge)
 
-        with c4:
-            d = deltas.get("ADR")
-            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("ADR", kpi.get("ADR", "-"), badge, help_text="Media giornaliera ADR")
+    with c4:
+        d = deltas.get("ADR")
+        badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
+        _kpi_block("ADR", kpi.get("ADR", "-"), badge, help_text="Media giornaliera ADR")
 
-        with c5:
-            d = deltas.get("RevPAR")
-            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
-            _kpi_block("RevPAR", kpi.get("RevPAR", "-"), badge, help_text="Media giornaliera RevPAR")
+    with c5:
+        d = deltas.get("RevPAR")
+        badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
+        _kpi_block("RevPAR", kpi.get("RevPAR", "-"), badge, help_text="Media giornaliera RevPAR")
 
     st.markdown("---")
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
