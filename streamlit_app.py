@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+# ---------------------------------------------------------------------
+# IMPORTS (puliti, nessuna indentazione prima delle righe)
+# ---------------------------------------------------------------------
 import io
 import os
 import calendar
@@ -15,6 +18,9 @@ from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
 
+# ---------------------------------------------------------------------
+# STILI BASE (unica definizione)
+# ---------------------------------------------------------------------
 def inject_base_styles():
     st.markdown("""
 <style>
@@ -77,7 +83,7 @@ div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
 /* micro-testo secondario */
 .dl-hint{ color:var(--dl-muted); font-size:0.85rem; }
 
-/* --- Z.6: vertical alignment fine-tuning --- */
+/* allineamenti verticali */
 .dl-strip{ align-items: center; }
 div.stButton{ margin: 0 !important; }
 div.stButton > button{
@@ -88,7 +94,7 @@ div.stButton > button{
 }
 .dl-actions{ align-items: center; display:flex; flex-wrap:wrap; gap:6px; }
 
-/* --- Z.6: stato attivo/disabilitato --- */
+/* stato disabilitato = look chip */
 div.stButton > button:disabled{
     background: var(--dl-chip-bg) !important;
     color: var(--dl-chip-fg) !important;
@@ -101,22 +107,23 @@ div.stButton > button:disabled{
 }
 </style>
 """, unsafe_allow_html=True)
-# --- END inject_base_styles ---
-# -----------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------
 # PAGE CONFIG + TITLE
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 st.set_page_config(page_title="DevLab – Kross Dashboard", layout="wide", initial_sidebar_state="collapsed")
 inject_base_styles()
 st.markdown('<div class="dl-root"></div>', unsafe_allow_html=True)
 st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # CONFIG & STATE
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 CFG = load_config("config.yaml")
 CURRENCY = CFG.get("currency_symbol", "€")
 ROOMS_DEFAULT = int(CFG.get("rooms_default", 5))
-ROOMS_MAP: dict = CFG.get("rooms_per_property", {})  # mappa camere per struttura, letta da config.yaml
+ROOMS_MAP: dict = CFG.get("rooms_per_property", {})  # mappa camere per struttura
 
 def _fallback_rooms_avail_year(df_year_like: pd.DataFrame, default_rooms: int) -> float:
     """
@@ -126,7 +133,6 @@ def _fallback_rooms_avail_year(df_year_like: pd.DataFrame, default_rooms: int) -
     if df_year_like is None or df_year_like.empty:
         return 0.0
     total = 0.0
-    # gruppi per property se presente, altrimenti unico gruppo
     props = df_year_like["property"].dropna().unique().tolist() if "property" in df_year_like.columns else [None]
     for p in props:
         df_p = df_year_like if p is None else df_year_like[df_year_like["property"] == p]
@@ -141,15 +147,14 @@ def _fallback_rooms_avail_year(df_year_like: pd.DataFrame, default_rooms: int) -
 today = datetime.now()
 st.session_state.setdefault("active_year", today.year)
 st.session_state.setdefault("active_month", today.month)
-# datasets: dict key=(property,year) -> DataFrame
-st.session_state.setdefault("datasets", {})
+st.session_state.setdefault("datasets", {})  # dict key=(property,year) -> DataFrame
 
 PROPERTIES = ["Lavagnini My Place", "La Terrazza di Jenny"]
 YEARS = [2024, 2025]
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # SIDEBAR: Selettori + Uploader
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 st.sidebar.header("Carica i dati")
 
 prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
@@ -170,7 +175,6 @@ with col_sb_a:
             try:
                 data = upl.read()
                 df = normalize_wide_excel(io.BytesIO(data), CFG, prop_sel)
-                # taglio all'anno selezionato
                 df = df[df["year"] == year_sel].copy()
                 st.session_state["datasets"][(prop_sel, year_sel)] = df
                 st.sidebar.success(f"Caricato: {prop_sel} – {year_sel} ({len(df)} righe)")
@@ -214,9 +218,9 @@ if st.session_state["datasets"]:
 else:
     st.sidebar.info("Nessun dataset caricato. Seleziona Struttura + Anno, carica un file e premi 'Carica file selezionato'.")
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # ASSEMBLA DF GLOBALE
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 if not st.session_state["datasets"]:
     st.warning("Carica almeno un file (Struttura + Anno).")
     st.stop()
@@ -224,9 +228,9 @@ if not st.session_state["datasets"]:
 df_all = pd.concat(st.session_state["datasets"].values(), ignore_index=True)
 properties = sorted(df_all["property"].dropna().unique().tolist())
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # VISTA: Singola / Aggregata
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 st.sidebar.markdown("---")
 view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=0)
 if view_mode == "Singola struttura":
@@ -240,9 +244,9 @@ if df_view.empty:
     st.warning("Nessun dato per la selezione corrente.")
     st.stop()
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # SETUP MESE ATTIVO + NAV
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 active_y = st.session_state["active_year"]
 active_m = st.session_state["active_month"]
 
@@ -264,12 +268,6 @@ def go_next():
     st.session_state["active_month"] = m
     st.session_state["active_year"] = y
 
-def go_prev_year():
-    st.session_state["active_year"] = st.session_state["active_year"] - 1
-
-def go_next_year():
-    st.session_state["active_year"] = st.session_state["active_year"] + 1
-
 prev_m = active_m - 1
 prev_y = active_y
 if prev_m == 0:
@@ -285,9 +283,9 @@ prev_label = f"{calendar.month_name[prev_m]} {prev_y}"
 curr_label = f"{calendar.month_name[active_m]} {active_y}"
 next_label = f"{calendar.month_name[next_m]} {next_y}"
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # KPI MESE CORRENTE (+ YoY) PER HEADER
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 df_cur = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
 df_prev = df_view[(df_view["year"] == active_y - 1) & (df_view["month"] == active_m)].copy()
 
@@ -334,34 +332,10 @@ deltas_header = {
     "RevPAR": revpar - revpar_py,
 }
 
-# -----------------------------------------------------------------------------
-# KPI ANNO CORRENTE (aggregati sull'anno attivo) + YoY ANNO  —  ROBUSTO AI NOMI COLONNA
-# -----------------------------------------------------------------------------
-# -----------------------------------------------------------------------------
-# STRISCIA ANNO (solo navigazione ◀ ▶, senza KPI)
-# -----------------------------------------------------------------------------
-year_prev_label = f"{active_y - 1}"
-year_curr_label = f"Anno {active_y}"
-year_next_label = f"{active_y + 1}"
-
-res_y = render_header_bar(
-    month_label=f'Anno {active_y}<br><span style="font-size:0.9rem;font-weight:400">(vs {active_y-1})</span>',
-    prev_month_label=year_prev_label,
-    next_month_label=year_next_label,
-    kpi={"Revenue": "—", "Occupazione": "—", "Notti vendute": "—", "ADR": "—", "RevPAR": "—"},
-    deltas=None,
-    key_prefix="hdr_year",
-    show_kpis=False,
-)
-if res_y.get("prev_clicked"):
-    go_prev_year()
-    st.rerun()
-if res_y.get("next_clicked"):
-    go_next_year()
-    st.rerun()
-
+# ---------------------------------------------------------------------
+# KPI ANNO CORRENTE (aggregati sull'anno attivo) + YoY
+# ---------------------------------------------------------------------
 def _sum_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
-    """Somma la prima colonna esistente nell'elenco, altrimenti 0."""
     if df is None or df.empty:
         return 0.0
     for c in candidates:
@@ -373,7 +347,6 @@ def _sum_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
     return 0.0
 
 def _mean_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
-    """Media della prima colonna esistente nell'elenco, altrimenti 0."""
     if df is None or df.empty:
         return 0.0
     for c in candidates:
@@ -384,40 +357,14 @@ def _mean_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
                 pass
     return 0.0
 
-# dataset anno corrente e anno precedente
 df_year    = df_view[df_view["year"] == active_y].copy()
 df_year_py = df_view[df_view["year"] == active_y - 1].copy()
 
-# --- Notti vendute (annuali): prova 'notti', poi 'nights', 'rooms_sold', 'sold_nights', 'occupied'
-NIGHTS_COLS = ["notti", "nights", "rooms_sold", "sold_nights", "occupied"]
-# --- Camere disponibili (annuali)
+NIGHTS_COLS   = ["notti", "nights", "rooms_sold", "sold_nights", "occupied"]
 ROOMS_AV_COLS = ["rooms_available", "camere_disponibili", "rooms_avail"]
 
 sold_nights_y    = int(_sum_first_present(df_year, NIGHTS_COLS))
 sold_nights_y_py = int(_sum_first_present(df_year_py, NIGHTS_COLS))
-# --- Override robusto: Camere disponibili annue e Occupazione annua ---
-def _rooms_available_total(df: pd.DataFrame) -> float:
-    if df is None or df.empty:
-        return 0.0
-    # 1) se esiste 'rooms_available' usiamolo (se >0)
-    if "rooms_available" in df.columns:
-        tot = float(df["rooms_available"].sum())
-        if tot > 0:
-            return tot
-    # 2) ricostruisci come (camere nominali × giorni del mese) con migliori candidati
-    room_cols = ["rooms", "camere", "rooms_nominal", "rooms_nominali", "camere_nominali"]
-    days_cols = ["days_in_month", "days", "giorni", "giorni_mese"]
-    rcol = next((c for c in room_cols if c in df.columns), None)
-    dcol = next((c for c in days_cols if c in df.columns), None)
-    if rcol and dcol:
-        try:
-            return float((df[rcol].astype(float) * df[dcol].astype(float)).sum())
-        except Exception:
-            pass
-    return 0.0
-
-rooms_avail_y = _rooms_available_total(df_year)
-rooms_avail_y_py = _rooms_available_total(df_year_py)
 
 rooms_avail_y    = _sum_first_present(df_year, ROOMS_AV_COLS)
 rooms_avail_y_py = _sum_first_present(df_year_py, ROOMS_AV_COLS)
@@ -427,48 +374,46 @@ if rooms_avail_y == 0.0:
 if rooms_avail_y_py == 0.0:
     rooms_avail_y_py = _fallback_rooms_avail_year(df_year_py, ROOMS_DEFAULT)
 
-occ_pct_y = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
-occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
-
-# --- Revenue annuo
-revenue_y    = _sum_first_present(df_year, ["revenue", "ricavi", "totale_revenue"])
-revenue_y_py = _sum_first_present(df_year_py, ["revenue", "ricavi", "totale_revenue"])
-
-# --- ADR/RevPAR annui (medie)
-adr_y         = _mean_first_present(df_year, ["adr"])
-adr_y_py      = _mean_first_present(df_year_py, ["adr"])
-revpar_y      = _mean_first_present(df_year, ["revpar"])
-revpar_y_py   = _mean_first_present(df_year_py, ["revpar"])
-
-# --- Occupazione annua ricalcolata su notti / camere disponibili
 occ_pct_y    = (sold_nights_y    / rooms_avail_y    * 100.0) if rooms_avail_y    > 0 else 0.0
 occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
 
-# --- Formattazioni per la barra anno
+revenue_y    = _sum_first_present(df_year,    ["revenue", "ricavi", "totale_revenue"])
+revenue_y_py = _sum_first_present(df_year_py, ["revenue", "ricavi", "totale_revenue"])
+
+adr_y       = _mean_first_present(df_year,    ["adr"])
+adr_y_py    = _mean_first_present(df_year_py, ["adr"])
+revpar_y    = _mean_first_present(df_year,    ["revpar"])
+revpar_y_py = _mean_first_present(df_year_py, ["revpar"])
+
+def _fmt_pct2(x: float) -> str:
+    return f"{x:.2f}%"
+
 kpi_year = {
     "Revenue": _fmt_eur(revenue_y),
-    "Occupazione": _fmt_pct(occ_pct_y),           # <-- chiave esatta usata dal componente
-    "Notti vendute": _fmt_thousands(sold_nights_y), # <-- chiave esatta usata dal componente
+    "Occupazione": _fmt_pct2(occ_pct_y),
+    "Notti vendute": _fmt_thousands(sold_nights_y),
     "ADR": _fmt_eur(adr_y),
     "RevPAR": _fmt_eur(revpar_y),
 }
 deltas_year = {
     "Revenue": revenue_y - revenue_y_py,
-    "Occupazione": occ_pct_y - occ_pct_y_py,             # punti percentuali
+    "Occupazione": occ_pct_y - occ_pct_y_py,      # pp
     "Notti vendute": sold_nights_y - sold_nights_y_py,
     "ADR": adr_y - adr_y_py,
     "RevPAR": revpar_y - revpar_y_py,
 }
-title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
 
-# --- KPI ANNO (fuori dalla strip) ---
+# --- KPI ANNO (titolo vuoto come richiesto) ---
 render_year_bar(
-    title_html=title_html,
+    title_html="",
     kpi=kpi_year,
     deltas=deltas_year,
     key_prefix="ybar_main",
 )
-# --- STRISCIA MESE (wrapper tipografico/layout) ---
+
+# ---------------------------------------------------------------------
+# STRISCIA MESE (solo pulsanti – wrapper tipografico)
+# ---------------------------------------------------------------------
 st.markdown('<div class="dl-strip">', unsafe_allow_html=True)
 cols = st.columns([1, 5])
 with cols[0]:
@@ -476,27 +421,42 @@ with cols[0]:
 with cols[1]:
     st.markdown('<div class="dl-actions">', unsafe_allow_html=True)
     res = render_header_bar(
-        month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
+        month_label=curr_label,
         prev_month_label=prev_label,
         next_month_label=next_label,
-        kpi=kpi_header,          # resta, ma ignorato quando show_kpis=False
+        kpi=kpi_header,          # ignorato quando show_kpis=False
         deltas=deltas_header,    # idem
         key_prefix="hdr_main",
-        show_kpis=False,         # ← solo pulsanti per la striscia mese
+        show_kpis=False,         # solo pulsanti per la striscia mese
     )
-    st.markdown('</div>', unsafe_allow_html=True)  # chiude .dl-actions
-st.markdown('</div>', unsafe_allow_html=True)      # chiude .dl-strip
+    st.markdown('</div>', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
 if res.get("prev_clicked"):
-    go_prev()
-    st.rerun()
-if res.get("next_clicked"):
-    go_next()
+    # NAV MESE PRECEDENTE
+    m = st.session_state["active_month"] - 1
+    y = st.session_state["active_year"]
+    if m == 0:
+        m = 12
+        y -= 1
+    st.session_state["active_month"] = m
+    st.session_state["active_year"] = y
     st.rerun()
 
-# -----------------------------------------------------------------------------
-# KPI + YOY DETTAGLIO (tabella) – usa funzioni già esistenti
-# -----------------------------------------------------------------------------
+if res.get("next_clicked"):
+    # NAV MESE SUCCESSIVO
+    m = st.session_state["active_month"] + 1
+    y = st.session_state["active_year"]
+    if m == 13:
+        m = 1
+        y += 1
+    st.session_state["active_month"] = m
+    st.session_state["active_year"] = y
+    st.rerun()
+
+# ---------------------------------------------------------------------
+# KPI + YOY DETTAGLIO (tabella)
+# ---------------------------------------------------------------------
 st.markdown("---")
 
 def fmt_currency(x: float) -> str:
@@ -508,10 +468,10 @@ def fmt_pct(x: float) -> str:
 ov = month_overview(df_view, active_y, active_m, ROOMS_DEFAULT)
 curr = ov["curr"]; prev = ov["prev"]; delta = ov["delta"]
 
-d_rev = float(delta.get("Δ_revenue", 0) or 0)
-d_occ = float(delta.get("Δ_occ_pp", 0) or 0)
-d_notti = int(delta.get("Δ_notti", 0) or 0)
-d_adr = float(delta.get("Δ_adr", 0) or 0)
+d_rev    = float(delta.get("Δ_revenue", 0) or 0)
+d_occ    = float(delta.get("Δ_occ_pp", 0) or 0)
+d_notti  = int(delta.get("Δ_notti", 0) or 0)
+d_adr    = float(delta.get("Δ_adr", 0) or 0)
 d_revpar = float(delta.get("Δ_revpar", 0) or 0)
 
 kpi_cols = st.columns(5)
@@ -528,8 +488,7 @@ with kpi_cols[4]:
 
 def color_span(val_fmt: str, raw_val: float, suffix: str = "") -> str:
     color = "#b60205" if raw_val < 0 else ("#1a7f37" if raw_val > 0 else "inherit")
-    sign = ""  # i formattati sopra già includono segno dove serve
-    return f"<span style='color:{color}; font-weight:600'>{sign}{val_fmt}{suffix}</span>"
+    return f"<span style='color:{color}; font-weight:600'>{val_fmt}{suffix}</span>"
 
 tbl = pd.DataFrame({
     "": ["Mese corrente", "Stesso mese anno precedente", "Δ"],
@@ -541,9 +500,9 @@ tbl = pd.DataFrame({
 })
 st.markdown(tbl.to_html(index=False, escape=False), unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # PROSSIMI 6 MESI
-# -----------------------------------------------------------------------------
+# ---------------------------------------------------------------------
 st.markdown("---")
 st.subheader("Prossimi 6 mesi – Overview KPI")
 
