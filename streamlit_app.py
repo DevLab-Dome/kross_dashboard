@@ -127,51 +127,52 @@ else:
     revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
     # Presentazione (stile KPI semplice)
     """
-    st.markdown("### Anno corrente")
+       st.markdown("### Anno corrente")
     st.caption(f"Analisi {active_y} (vs {active_y-1})")
 
-c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5 = st.columns(5)
 
-with c1:
-    st.markdown("**Revenue (anno)**")
-    st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revenue_y)}</div>", unsafe_allow_html=True)
-    dy = revenue_y - revenue_y_py
-    st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
-    st.caption("Somma Totale revenue dell'anno")
+    with c1:
+        st.markdown("**Revenue (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revenue_y)}</div>", unsafe_allow_html=True)
+        dy = revenue_y - revenue_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Somma Totale revenue dell'anno")
 
-with c2:
-    st.markdown("**Occupazione (anno)**")
-    st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_pct(occ_pct_y)}</div>", unsafe_allow_html=True)
-    dy = occ_pct_y - occ_pct_y_py
-    dy_str = f"{dy:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    st.markdown(
-        f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{dy_str} pp</span>",
-        unsafe_allow_html=True
-    )
-    st.caption("Notti vendute / (Camere disponibili)")
+    with c2:
+        st.markdown("**Occupazione (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_pct(occ_pct_y)}</div>", unsafe_allow_html=True)
+        dy = occ_pct_y - occ_pct_y_py
+        dy_str = f"{dy:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        st.markdown(
+            f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{dy_str} pp</span>",
+            unsafe_allow_html=True
+        )
+        st.caption("Notti vendute / (Camere disponibili)")
 
-with c3:
-    st.markdown("**Notti vendute (anno)**")
-    st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_thousands(sold_nights_y)}</div>", unsafe_allow_html=True)
-    dy = sold_nights_y - sold_nights_y_py
-    st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_thousands(dy)}</span>", unsafe_allow_html=True)
-    st.caption("Somma notti vendute nell'anno")
+    with c3:
+        st.markdown("**Notti vendute (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_thousands(sold_nights_y)}</div>", unsafe_allow_html=True)
+        dy = sold_nights_y - sold_nights_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_thousands(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Somma notti vendute nell'anno")
 
-with c4:
-    st.markdown("**ADR medio (anno)**")
-    st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(adr_y)}</div>", unsafe_allow_html=True)
-    dy = adr_y - adr_y_py
-    st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
-    st.caption("Media giornaliera ADR (anno)")
+    with c4:
+        st.markdown("**ADR medio (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(adr_y)}</div>", unsafe_allow_html=True)
+        dy = adr_y - adr_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Media giornaliera ADR (anno)")
 
-with c5:
-    st.markdown("**RevPAR medio (anno)**")
-    st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revpar_y)}</div>", unsafe_allow_html=True)
-    dy = revpar_y - revpar_y_py
-    st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
-    st.caption("Media giornaliera RevPAR (anno)")
+    with c5:
+        st.markdown("**RevPAR medio (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revpar_y)}</div>", unsafe_allow_html=True)
+        dy = revpar_y - revpar_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Media giornaliera RevPAR (anno)")
 
-st.markdown("---")
+    st.markdown("---")
+
 """
     # === ANNO CORRENTE con componente ===
 kpi_year = {
