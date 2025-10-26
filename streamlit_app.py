@@ -371,12 +371,21 @@ deltas_year = {
 }
 title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
 
-render_year_bar(
-    title_html=title_html,
-    kpi=kpi_year,
-    deltas=deltas_year,
-    key_prefix="ybar_main",
-)
+# --- STRISCIA ANNO (wrapper tipografico/layout) ---
+st.markdown('<div class="dl-strip">', unsafe_allow_html=True)
+cols = st.columns([1, 5])
+with cols[0]:
+    st.markdown('<span class="dl-title">ANNO</span>', unsafe_allow_html=True)
+with cols[1]:
+    st.markdown('<div class="dl-actions">', unsafe_allow_html=True)
+    render_year_bar(
+        title_html=title_html,
+        kpi=kpi_year,
+        deltas=deltas_year,
+        key_prefix="ybar_main",
+    )
+    st.markdown('</div>', unsafe_allow_html=True)  # chiude .dl-actions
+st.markdown('</div>', unsafe_allow_html=True)      # chiude .dl-strip
 res = render_header_bar(
     month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
     prev_month_label=prev_label,
