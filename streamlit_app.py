@@ -11,7 +11,6 @@ import plotly.express as px
 import streamlit as st
 
 from modules.ui_header import render_header_bar, render_year_bar
-
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
@@ -59,7 +58,7 @@ def inject_base_styles():
 div.stButton>button{
     padding: var(--dl-pad);
     border-radius: 8px;
-    border:1px solid #cbd5e1;        /* contrasto bordo ↑ */
+    border:1px solid #cbd5e1;
     background:#fff !important;
     color: var(--dl-fg) !important;
     font-weight: 600;
@@ -102,6 +101,7 @@ div.stButton > button:disabled{
 }
 </style>
 """, unsafe_allow_html=True)
+# --- FINE inject_base_styles ---
 
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
