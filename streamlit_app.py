@@ -270,6 +270,32 @@ ROOMS_AV_COLS = ["rooms_available", "camere_disponibili", "rooms_avail"]
 
 sold_nights_y    = int(_sum_first_present(df_year, NIGHTS_COLS))
 sold_nights_y_py = int(_sum_first_present(df_year_py, NIGHTS_COLS))
+# --- Override robusto: Camere disponibili annue e Occupazione annua ---
+def _rooms_available_total(df: pd.DataFrame) -> float:
+    if df is None or df.empty:
+        return 0.0
+    # 1) se esiste 'rooms_available' usiamolo (se >0)
+    if "rooms_available" in df.columns:
+        tot = float(df["rooms_available"].sum())
+        if tot > 0:
+            return tot
+    # 2) ricostruisci come (camere nominali × giorni del mese) con migliori candidati
+    room_cols = ["rooms", "camere", "rooms_nominal", "rooms_nominali", "camere_nominali"]
+    days_cols = ["days_in_month", "days", "giorni", "giorni_mese"]
+    rcol = next((c for c in room_cols if c in df.columns), None)
+    dcol = next((c for c in days_cols if c in df.columns), None)
+    if rcol and dcol:
+        try:
+            return float((df[rcol].astype(float) * df[dcol].astype(float)).sum())
+        except Exception:
+            pass
+    return 0.0
+
+rooms_avail_y = _rooms_available_total(df_year)
+rooms_avail_y_py = _rooms_available_total(df_year_py)
+
+occ_pct_y = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
+occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
 
 rooms_avail_y    = _sum_first_present(df_year, ROOMS_AV_COLS)
 rooms_avail_y_py = _sum_first_present(df_year_py, ROOMS_AV_COLS)
