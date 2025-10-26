@@ -95,6 +95,7 @@ if res.get("prev_clicked"):
 if res.get("next_clicked"):
     go_next()
     st.rerun()
+    
     # === KPI ANNO CORRENTE (aggregati su tutto l'anno attivo) ===
 df_year = df_view[df_view["year"] == active_y].copy()
 
@@ -123,7 +124,6 @@ else:
     adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
     revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
     # Presentazione (stile KPI semplice)
-    st.warning("DEBUG: rendering KPI Anno Corrente")
     st.markdown("### Anno corrente")
     st.caption(f"Analisi {active_y} (vs {active_y-1})")
 
