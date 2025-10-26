@@ -101,7 +101,7 @@ div.stButton > button:disabled{
 }
 </style>
 """, unsafe_allow_html=True)
-# --- FINE inject_base_styles ---
+# --- END inject_base_styles ---
 
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
