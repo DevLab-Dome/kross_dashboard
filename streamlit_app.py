@@ -194,6 +194,7 @@ render_year_bar(
     deltas=deltas_year,
     key_prefix="ybar_main",
 )
+st.warning("MARKER: se vedi questo messaggio giallo, la sezione ANNO è stata eseguita.")
 
     # Presentazione (stile KPI semplice)
     st.markdown("### Anno corrente")
