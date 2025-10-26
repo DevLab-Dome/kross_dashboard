@@ -251,6 +251,24 @@ revenue_y_py     = float(df_year_py["revenue"].sum()) if not df_year_py.empty an
 occ_pct_y_py     = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
 adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
 revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
+# --- Override robusto: Notti annue e Occupazione annua (fallback 'notti' -> 'occupied') ---
+def _sold_nights_total(df: pd.DataFrame) -> int:
+    if df is None or df.empty:
+        return 0
+    if "notti" in df.columns:
+        return int(df["notti"].sum())
+    if "occupied" in df.columns:
+        return int(df["occupied"].sum())
+    return 0
+
+sold_nights_y = _sold_nights_total(df_year)
+sold_nights_y_py = _sold_nights_total(df_year_py)
+
+# ricalcola Occupazione annua con le notti corrette
+rooms_avail_y = float(df_year["rooms_available"].sum()) if "rooms_available" in df_year.columns else 0.0
+rooms_avail_y_py = float(df_year_py["rooms_available"].sum()) if not df_year_py.empty and "rooms_available" in df_year_py.columns else 0.0
+occ_pct_y = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
+occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
 
 kpi_year = {
     "Revenue": _fmt_eur(revenue_y),
