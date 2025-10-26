@@ -172,7 +172,6 @@ else:
         st.caption("Media giornaliera RevPAR (anno)")
 
     st.markdown("---")
-
 """
     # === ANNO CORRENTE con componente ===
 kpi_year = {
