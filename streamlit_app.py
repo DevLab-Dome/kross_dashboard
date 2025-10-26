@@ -242,23 +242,6 @@ deltas_header = {
     "RevPAR": revpar - revpar_py,
 }
 
-res = render_header_bar(
-    month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
-    prev_month_label=prev_label,
-    next_month_label=next_label,
-    kpi=kpi_header,
-    deltas=deltas_header,
-    key_prefix="hdr_main",
-    show_kpis=False,
-)
-
-if res.get("prev_clicked"):
-    go_prev()
-    st.rerun()
-if res.get("next_clicked"):
-    go_next()
-    st.rerun()
-
 # -----------------------------------------------------------------------------
 # KPI ANNO CORRENTE (aggregati sull'anno attivo) + YoY ANNO  —  ROBUSTO AI NOMI COLONNA
 # -----------------------------------------------------------------------------
@@ -392,6 +375,22 @@ render_year_bar(
     deltas=deltas_year,
     key_prefix="ybar_main",
 )
+res = render_header_bar(
+    month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
+    prev_month_label=prev_label,
+    next_month_label=next_label,
+    kpi=kpi_header,
+    deltas=deltas_header,
+    key_prefix="hdr_main",
+    show_kpis=False,
+)
+
+if res.get("prev_clicked"):
+    go_prev()
+    st.rerun()
+if res.get("next_clicked"):
+    go_next()
+    st.rerun()
 
 # -----------------------------------------------------------------------------
 # KPI + YOY DETTAGLIO (tabella) – usa funzioni già esistenti
