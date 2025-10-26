@@ -252,7 +252,7 @@ from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
 st.set_page_config(page_title="DevLab – Kross Dashboard", layout="wide", initial_sidebar_state="collapsed")
-st.title("DevLab – Kross Dashboard – Multi Struttura")
+st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
 # ------------------
 # CONFIG & STATE
