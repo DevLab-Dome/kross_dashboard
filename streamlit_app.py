@@ -6,7 +6,7 @@ import os
 import calendar
 from datetime import datetime
 
-import panda as pd
+import pandas as pd
 import plotly.express as px
 import streamlit as st
 
