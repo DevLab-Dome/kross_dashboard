@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-from modules.ui_header import render_header_bar
+from modules.ui_header import render_header_bar, render_year_bar
 import io, os, calendar
 from datetime import datetime
 import pandas as pd
