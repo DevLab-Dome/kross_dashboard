@@ -10,7 +10,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from modules.ui_header import render_header_bar, render_yar_bar
+from modules.ui_header import render_header_bar, render_year_bar
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
