@@ -30,7 +30,7 @@ def _delta_badge(value: float, suffix: str = "", positive_is_good: bool = True) 
 def _kpi_block(title: str, value: str, delta_html: Optional[str] = None, help_text: Optional[str] = None) -> None:
     """Blocco KPI compatto con titolo, valore e (opzionale) delta colorato."""
     st.markdown(f"<div style='font-size:0.95rem;font-weight:600'>{title}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div style='font-size:1.85rem;line-height:1.2;font-weight:700'>{value}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:2.0rem;line-height:1.2;font-weight:400'>{value}</div>", unsafe_allow_html=True)
     if delta_html:
         st.markdown(delta_html, unsafe_allow_html=True)
     if help_text:
