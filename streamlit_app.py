@@ -24,6 +24,27 @@ st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 CFG = load_config("config.yaml")
 CURRENCY = CFG.get("currency_symbol", "€")
 ROOMS_DEFAULT = int(CFG.get("rooms_default", 5))
+ROOMS_MAP: dict = CFG.get("rooms_per_property", {})  # mappa camere per struttura, letta da config.yaml
+
+def _fallback_rooms_avail_year(df_year_like: pd.DataFrame, default_rooms: int) -> float:
+    """
+    Calcola le camere disponibili annue come (camere nominali per struttura × giorni per mese presente nei dati).
+    Usa ROOMS_MAP per singola struttura, altrimenti default_rooms.
+    """
+    if df_year_like is None or df_year_like.empty:
+        return 0.0
+    total = 0.0
+    # gruppi per property se presente, altrimenti unico gruppo
+    props = df_year_like["property"].dropna().unique().tolist() if "property" in df_year_like.columns else [None]
+    for p in props:
+        df_p = df_year_like if p is None else df_year_like[df_year_like["property"] == p]
+        rooms_for_p = int(ROOMS_MAP.get(p, default_rooms)) if p is not None else int(default_rooms)
+        months = df_p[["year", "month"]].drop_duplicates()
+        for _, r in months.iterrows():
+            y, m = int(r["year"]), int(r["month"])
+            days = calendar.monthrange(y, m)[1]
+            total += rooms_for_p * days
+    return float(total)
 
 today = datetime.now()
 st.session_state.setdefault("active_year", today.year)
