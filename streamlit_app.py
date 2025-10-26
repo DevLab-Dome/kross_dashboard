@@ -172,6 +172,12 @@ def go_next():
     st.session_state["active_month"] = m
     st.session_state["active_year"] = y
 
+def go_prev_year():
+    st.session_state["active_year"] = st.session_state["active_year"] - 1
+
+def go_next_year():
+    st.session_state["active_year"] = st.session_state["active_year"] + 1
+
 prev_m = active_m - 1
 prev_y = active_y
 if prev_m == 0:
