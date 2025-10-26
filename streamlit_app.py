@@ -253,13 +253,13 @@ year_curr_label = f"Anno {active_y}"
 year_next_label = f"{active_y + 1}"
 
 res_y = render_header_bar(
-    month_label=year_curr_label,
+    month_label=f'Anno {active_y}<br><span style="font-size:0.9rem;font-weight:400">(vs {active_y-1})</span>',
     prev_month_label=year_prev_label,
     next_month_label=year_next_label,
     kpi={"Revenue": "—", "Occupazione": "—", "Notti vendute": "—", "ADR": "—", "RevPAR": "—"},
     deltas=None,
     key_prefix="hdr_year",
-    show_kpis=False,   # << solo barra a bottoni
+    show_kpis=False,
 )
 if res_y.get("prev_clicked"):
     go_prev_year()
