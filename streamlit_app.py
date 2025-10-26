@@ -315,11 +315,16 @@ def _rooms_available_total(df: pd.DataFrame) -> float:
 rooms_avail_y = _rooms_available_total(df_year)
 rooms_avail_y_py = _rooms_available_total(df_year_py)
 
-occ_pct_y = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
-occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
-
 rooms_avail_y    = _sum_first_present(df_year, ROOMS_AV_COLS)
 rooms_avail_y_py = _sum_first_present(df_year_py, ROOMS_AV_COLS)
+
+if rooms_avail_y == 0.0:
+    rooms_avail_y = _fallback_rooms_avail_year(df_year, ROOMS_DEFAULT)
+if rooms_avail_y_py == 0.0:
+    rooms_avail_y_py = _fallback_rooms_avail_year(df_year_py, ROOMS_DEFAULT)
+
+occ_pct_y = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
+occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
 
 # --- Revenue annuo
 revenue_y    = _sum_first_present(df_year, ["revenue", "ricavi", "totale_revenue"])
