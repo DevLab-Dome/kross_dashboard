@@ -75,31 +75,37 @@ def render_year_nav(
     next_label: str | None = None,
 ) -> dict:
     """
-    Due bottoni PREV/NEXT con 'Anno {current_year}' centrato in modo robusto.
-    Layout a 5 colonne simmetriche per compensare larghezze diverse dei bottoni.
+    Bottoni PREV/NEXT con titolo 'Anno {current_year}' centrato *geometricamente*.
+    Usiamo 3 colonne principali e sub-colonne per spingere i bottoni ai bordi,
+    così il titolo sta esattamente al centro.
     """
-    import streamlit as st  # ok se già importato in alto
+    import streamlit as st
 
     prev_text = prev_label if prev_label is not None else str(current_year - 1)
     next_text = next_label if next_label is not None else str(current_year + 1)
 
-    #    [spacer][prev][   title   ][next][spacer]
-    cols = st.columns([2, 1, 3, 1, 2])
+    # Tre colonne principali: [sinistra][centro][destra]
+    c_left, c_center, c_right = st.columns([1, 2, 1])
 
-    with cols[1]:
+    # Sinistra: sub-columns per allineare il bottone a destra della sua zona
+    sc1, sc2 = c_left.columns([5, 1])
+    with sc2:
         prev_clicked = st.button(prev_text, key=f"{key_prefix}_prev")
 
-    with cols[2]:
+    # Centro: titolo centrato
+    with c_center:
         st.markdown(
             f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>Anno {current_year}</div>",
             unsafe_allow_html=True,
         )
 
-    with cols[3]:
+    # Destra: sub-columns per allineare il bottone a sinistra della sua zona
+    sc3, sc4 = c_right.columns([1, 5])
+    with sc3:
         next_clicked = st.button(next_text, key=f"{key_prefix}_next")
 
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
-
+    
 # --- HEADER (MESE) ---------------------------------------------------------------------------
 
 def render_header_bar(
