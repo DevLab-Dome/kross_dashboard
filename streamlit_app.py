@@ -222,6 +222,7 @@ res = render_header_bar(
     kpi=kpi_header,
     deltas=deltas_header,
     key_prefix="hdr_main",
+    show_kpis=False,
 )
 
 if res.get("prev_clicked"):
