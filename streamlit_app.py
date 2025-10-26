@@ -29,106 +29,6 @@ _ = render_header_bar(
 # === NUOVO HEADER con KPI REALI + Δ YoY ===
 # Filtro mese/anno attivi (corrente)
     
-    # === KPI ANNO CORRENTE (aggregati su tutto l'anno attivo) ===
-df_year = df_view[df_view["year"] == active_y].copy()
-
-# Se non ci sono dati per l'anno (evitiamo errori)
-if df_year.empty:
-    st.info(f"Nessun dato per l'anno {active_y}.")
-else:
-    # Calcoli annuali in linea con le convenzioni:
-    # - Revenue = somma "Totale revenue"
-    # - Occupazione annua = notti vendute / (camere disponibili) * 100
-    # - ADR = media giornaliera ADR
-    # - RevPAR = media giornaliera RevPAR
-    sold_nights_y = int(df_year["occupied"].sum()) if "occupied" in df_year.columns else 0
-    rooms_avail_y = float(df_year["rooms_available"].sum()) if "rooms_available" in df_year.columns else 0.0
-    revenue_y     = float(df_year["revenue"].sum()) if "revenue" in df_year.columns else 0.0
-    occ_pct_y     = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
-    adr_y         = float(df_year["adr"].mean()) if "adr" in df_year.columns else 0.0
-    revpar_y      = float(df_year["revpar"].mean()) if "revpar" in df_year.columns else 0.0
-
-    # YoY per l'anno (stesso anno-1)
-    df_year_py = df_view[df_view["year"] == active_y - 1].copy()
-    sold_nights_y_py = int(df_year_py["occupied"].sum()) if not df_year_py.empty and "occupied" in df_year_py.columns else 0
-    rooms_avail_y_py = float(df_year_py["rooms_available"].sum()) if not df_year_py.empty and "rooms_available" in df_year_py.columns else 0.0
-    revenue_y_py     = float(df_year_py["revenue"].sum()) if not df_year_py.empty and "revenue" in df_year_py.columns else 0.0
-    occ_pct_y_py     = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
-    adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
-    revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
-    # Presentazione (stile KPI semplice)
-    """
-       st.markdown("### Anno corrente")
-    st.caption(f"Analisi {active_y} (vs {active_y-1})")
-
-    c1, c2, c3, c4, c5 = st.columns(5)
-
-    with c1:
-        st.markdown("**Revenue (anno)**")
-        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revenue_y)}</div>", unsafe_allow_html=True)
-        dy = revenue_y - revenue_y_py
-        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
-        st.caption("Somma Totale revenue dell'anno")
-
-    with c2:
-        st.markdown("**Occupazione (anno)**")
-        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_pct(occ_pct_y)}</div>", unsafe_allow_html=True)
-        dy = occ_pct_y - occ_pct_y_py
-        dy_str = f"{dy:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        st.markdown(
-            f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{dy_str} pp</span>",
-            unsafe_allow_html=True
-        )
-        st.caption("Notti vendute / (Camere disponibili)")
-
-    with c3:
-        st.markdown("**Notti vendute (anno)**")
-        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_thousands(sold_nights_y)}</div>", unsafe_allow_html=True)
-        dy = sold_nights_y - sold_nights_y_py
-        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_thousands(dy)}</span>", unsafe_allow_html=True)
-        st.caption("Somma notti vendute nell'anno")
-
-    with c4:
-        st.markdown("**ADR medio (anno)**")
-        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(adr_y)}</div>", unsafe_allow_html=True)
-        dy = adr_y - adr_y_py
-        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
-        st.caption("Media giornaliera ADR (anno)")
-
-    with c5:
-        st.markdown("**RevPAR medio (anno)**")
-        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revpar_y)}</div>", unsafe_allow_html=True)
-        dy = revpar_y - revpar_y_py
-        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
-        st.caption("Media giornaliera RevPAR (anno)")
-
-    st.markdown("---")
-"""
-    # === ANNO CORRENTE con componente ===
-kpi_year = {
-    "Revenue": _fmt_eur(revenue_y),
-    "Occupazione": _fmt_pct(occ_pct_y),
-    "Notti vendute": _fmt_thousands(sold_nights_y),
-    "ADR": _fmt_eur(adr_y),
-    "RevPAR": _fmt_eur(revpar_y),
-}
-deltas_year = {
-    "Revenue": revenue_y - revenue_y_py,
-    "Occupazione": occ_pct_y - occ_pct_y_py,        # in pp
-    "Notti vendute": sold_nights_y - sold_nights_y_py,
-    "ADR": adr_y - adr_y_py,
-    "RevPAR": revpar_y - revpar_y_py,
-}
-title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
-
-render_year_bar(
-    title_html=title_html,
-    kpi=kpi_year,
-    deltas=deltas_year,
-    key_prefix="ybar_main",
-)
-st.warning("MARKER: se vedi questo messaggio giallo, la sezione ANNO è stata eseguita.")
-
     # Presentazione (stile KPI semplice)
 """
     st.markdown("### Anno corrente")
@@ -361,6 +261,105 @@ if res.get("prev_clicked"):
 if res.get("next_clicked"):
     go_next()
     st.rerun()
+# === KPI ANNO CORRENTE (aggregati su tutto l'anno attivo) ===
+df_year = df_view[df_view["year"] == active_y].copy()
+
+# Se non ci sono dati per l'anno (evitiamo errori)
+if df_year.empty:
+    st.info(f"Nessun dato per l'anno {active_y}.")
+else:
+    # Calcoli annuali in linea con le convenzioni:
+    # - Revenue = somma "Totale revenue"
+    # - Occupazione annua = notti vendute / (camere disponibili) * 100
+    # - ADR = media giornaliera ADR
+    # - RevPAR = media giornaliera RevPAR
+    sold_nights_y = int(df_year["occupied"].sum()) if "occupied" in df_year.columns else 0
+    rooms_avail_y = float(df_year["rooms_available"].sum()) if "rooms_available" in df_year.columns else 0.0
+    revenue_y     = float(df_year["revenue"].sum()) if "revenue" in df_year.columns else 0.0
+    occ_pct_y     = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
+    adr_y         = float(df_year["adr"].mean()) if "adr" in df_year.columns else 0.0
+    revpar_y      = float(df_year["revpar"].mean()) if "revpar" in df_year.columns else 0.0
+
+    # YoY per l'anno (stesso anno-1)
+    df_year_py = df_view[df_view["year"] == active_y - 1].copy()
+    sold_nights_y_py = int(df_year_py["occupied"].sum()) if not df_year_py.empty and "occupied" in df_year_py.columns else 0
+    rooms_avail_y_py = float(df_year_py["rooms_available"].sum()) if not df_year_py.empty and "rooms_available" in df_year_py.columns else 0.0
+    revenue_y_py     = float(df_year_py["revenue"].sum()) if not df_year_py.empty and "revenue" in df_year_py.columns else 0.0
+    occ_pct_y_py     = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
+    adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
+    revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
+    # Presentazione (stile KPI semplice)
+    """
+       st.markdown("### Anno corrente")
+    st.caption(f"Analisi {active_y} (vs {active_y-1})")
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+
+    with c1:
+        st.markdown("**Revenue (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revenue_y)}</div>", unsafe_allow_html=True)
+        dy = revenue_y - revenue_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Somma Totale revenue dell'anno")
+
+    with c2:
+        st.markdown("**Occupazione (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_pct(occ_pct_y)}</div>", unsafe_allow_html=True)
+        dy = occ_pct_y - occ_pct_y_py
+        dy_str = f"{dy:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        st.markdown(
+            f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{dy_str} pp</span>",
+            unsafe_allow_html=True
+        )
+        st.caption("Notti vendute / (Camere disponibili)")
+
+    with c3:
+        st.markdown("**Notti vendute (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_thousands(sold_nights_y)}</div>", unsafe_allow_html=True)
+        dy = sold_nights_y - sold_nights_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_thousands(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Somma notti vendute nell'anno")
+
+    with c4:
+        st.markdown("**ADR medio (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(adr_y)}</div>", unsafe_allow_html=True)
+        dy = adr_y - adr_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Media giornaliera ADR (anno)")
+
+    with c5:
+        st.markdown("**RevPAR medio (anno)**")
+        st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_eur(revpar_y)}</div>", unsafe_allow_html=True)
+        dy = revpar_y - revpar_y_py
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{_fmt_eur(dy)}</span>", unsafe_allow_html=True)
+        st.caption("Media giornaliera RevPAR (anno)")
+
+    st.markdown("---")
+"""
+    # === ANNO CORRENTE con componente ===
+kpi_year = {
+    "Revenue": _fmt_eur(revenue_y),
+    "Occupazione": _fmt_pct(occ_pct_y),
+    "Notti vendute": _fmt_thousands(sold_nights_y),
+    "ADR": _fmt_eur(adr_y),
+    "RevPAR": _fmt_eur(revpar_y),
+}
+deltas_year = {
+    "Revenue": revenue_y - revenue_y_py,
+    "Occupazione": occ_pct_y - occ_pct_y_py,        # in pp
+    "Notti vendute": sold_nights_y - sold_nights_y_py,
+    "ADR": adr_y - adr_y_py,
+    "RevPAR": revpar_y - revpar_y_py,
+}
+title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
+
+render_year_bar(
+    title_html=title_html,
+    kpi=kpi_year,
+    deltas=deltas_year,
+    key_prefix="ybar_main",
+)
+st.warning("MARKER: se vedi questo messaggio giallo, la sezione ANNO è stata eseguita.")
 
 # ------------------
 # SETUP MESE ATTIVO (ensure vars exist)
