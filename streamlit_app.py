@@ -123,9 +123,9 @@ else:
     adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
     revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
     # Presentazione (stile KPI semplice)
-st.warning("DEBUG: rendering KPI Anno Corrente")
-st.markdown("### Anno corrente")
-st.caption(f"Analisi {active_y} (vs {active_y-1})")
+    st.warning("DEBUG: rendering KPI Anno Corrente")
+    st.markdown("### Anno corrente")
+    st.caption(f"Analisi {active_y} (vs {active_y-1})")
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
