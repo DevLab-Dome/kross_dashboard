@@ -379,10 +379,10 @@ res = render_header_bar(
     month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
     prev_month_label=prev_label,
     next_month_label=next_label,
-    kpi=kpi_header,
-    deltas=deltas_header,
+    kpi=kpi_header,          # resta, ma ignorato quando show_kpis=False
+    deltas=deltas_header,    # idem
     key_prefix="hdr_main",
-    show_kpis=False,
+    show_kpis=False,         # ← solo pulsanti per la striscia mese
 )
 
 if res.get("prev_clicked"):
