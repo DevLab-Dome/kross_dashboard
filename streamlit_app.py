@@ -242,6 +242,7 @@ st.warning("MARKER: se vedi questo messaggio giallo, la sezione ANNO è stata es
         st.caption("Media giornaliera RevPAR (anno)")
 
     st.markdown("---")
+"""
 # --- Flag per mostrare/nascondere la sezione "Usa file demo"
 try:
     SHOW_DEMO = bool(st.secrets.get("SHOW_DEMO", True))
