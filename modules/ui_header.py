@@ -178,11 +178,6 @@ def render_year_bar(
     deltas = deltas or {}
     box = st.container()
     with box:
-        st.markdown(
-            f"<div style='text-align:center;font-size:1.1rem;font-weight:700'>{title_html}</div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
 
         c1, c2, c3, c4, c5 = st.columns(5)
 
