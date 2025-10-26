@@ -47,6 +47,7 @@ def render_header_bar(
     kpi: Dict[str, str],
     deltas: Optional[Dict[str, float]] = None,
     key_prefix: str = "hdr",
+    show_kpis: bool = True,
 ) -> Dict[str, bool]:
     """Render della barra superiore della dashboard.
 
