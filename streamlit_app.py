@@ -427,7 +427,7 @@ with c_c:
 st.markdown("<div style='text-align:center; opacity:0.0'>.</div>", unsafe_allow_html=True)
 with c_r:
 st.markdown(f"<div style='text-align:center; color:#2c7a7b'>{next_label}</div>", unsafe_allow_html=True)
-
+"""
 titolo = f"{curr_label} (vs {active_y-1}) – " + (props_to_use[0] if len(props_to_use)==1 else "Aggregato")
 st.markdown("<hr>", unsafe_allow_html=True)
 
