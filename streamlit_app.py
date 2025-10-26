@@ -6,6 +6,8 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 st.set_page_config(page_title="Kross Dashboard", layout="wide")
+st.error("MARKER TOP — branch develop — file streamlit_app.py")
+
 """
 # === HEADER DASHBOARD (placeholder; sostituiremo con dati reali nel passo successivo) ===
 kpi_values = {
