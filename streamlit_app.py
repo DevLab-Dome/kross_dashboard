@@ -451,6 +451,36 @@ deltas_year = {
 title_html = f"Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {active_y-1})</span>"
 
 # --- KPI ANNO (fuori dalla strip) ---
+# --- NAVIGAZIONE ANNO allineata alle 5 colonne KPI ---
+g1, g2, g3, g4, g5 = st.columns(5)
+
+# bottone PREV centrato sopra "Revenue (anno)"
+with g1:
+    _l, _c, _r = st.columns([1, 1, 1])
+    with _c:
+        btn_prev = st.button(str(active_y - 1), key="yhdr_prev")
+
+# titolo centrato nella colonna centrale
+with g3:
+    st.markdown(
+        f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>Anno {active_y}</div>",
+        unsafe_allow_html=True,
+    )
+
+# bottone NEXT centrato sopra "RevPAR medio"
+with g5:
+    _l2, _c2, _r2 = st.columns([1, 1, 1])
+    with _c2:
+        btn_next = st.button(str(active_y + 1), key="yhdr_next")
+
+# gestione click
+if 'btn_prev' in locals() and btn_prev:
+    st.session_state['active_y'] = active_y - 1
+    st.rerun()
+if 'btn_next' in locals() and btn_next:
+    st.session_state['active_y'] = active_y + 1
+    st.rerun()
+
 render_year_bar(
     title_html=title_html,
     kpi=kpi_year,
