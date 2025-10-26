@@ -140,7 +140,8 @@ else:
         st.markdown("**Occupazione (anno)**")
         st.markdown(f"<div style='font-size:1.6rem;line-height:1.2'>{_fmt_pct(occ_pct_y)}</div>", unsafe_allow_html=True)
         dy = occ_pct_y - occ_pct_y_py
-        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{str(_fmt_pct(dy))[:-1]} pp</span>", unsafe_allow_html=True)
+        dy_str = f"{dy:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        st.markdown(f"<span style='font-weight:600;color:{'#138000' if dy>=0 else '#C00000'}'>{'+' if dy>0 else ''}{dy_str} pp</span>", unsafe_allow_html=True)
         st.caption("Notti vendute / (Camere disponibili)")
 
     with c3:
