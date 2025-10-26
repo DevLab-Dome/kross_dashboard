@@ -28,75 +28,6 @@ _ = render_header_bar(
 """
 # === NUOVO HEADER con KPI REALI + Δ YoY ===
 # Filtro mese/anno attivi (corrente)
-df_cur = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
-# Filtro stesso mese anno precedente (YoY)
-df_prev = df_view[(df_view["year"] == active_y - 1) & (df_view["month"] == active_m)].copy()
-
-# Helper formattazione IT
-def _fmt_thousands(n: int) -> str:
-    s = f"{n:,}"
-    return s.replace(",", "X").replace(".", ",").replace("X", ".")
-
-def _fmt_eur(x: float) -> str:
-    s = f"{x:,.2f}"
-    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{CURRENCY} {s}"
-
-def _fmt_pct(x: float) -> str:
-    s = f"{x:,.2f}"
-    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
-    return f"{s}%"
-
-# --- KPI mese corrente (in linea con le convenzioni BJT/Kross) ---
-sold_nights = int(df_cur["occupied"].sum()) if not df_cur.empty and "occupied" in df_cur.columns else 0
-rooms_avail = float(df_cur["rooms_available"].sum()) if not df_cur.empty and "rooms_available" in df_cur.columns else 0.0
-revenue     = float(df_cur["revenue"].sum()) if not df_cur.empty and "revenue" in df_cur.columns else 0.0
-occ_pct     = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
-adr         = float(df_cur["adr"].mean()) if not df_cur.empty and "adr" in df_cur.columns else 0.0
-revpar      = float(df_cur["revpar"].mean()) if not df_cur.empty and "revpar" in df_cur.columns else 0.0
-
-# --- KPI YoY (stesso mese anno -1) ---
-sold_nights_py = int(df_prev["occupied"].sum()) if not df_prev.empty and "occupied" in df_prev.columns else 0
-rooms_avail_py = float(df_prev["rooms_available"].sum()) if not df_prev.empty and "rooms_available" in df_prev.columns else 0.0
-revenue_py     = float(df_prev["revenue"].sum()) if not df_prev.empty and "revenue" in df_prev.columns else 0.0
-occ_pct_py     = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
-adr_py         = float(df_prev["adr"].mean()) if not df_prev.empty and "adr" in df_prev.columns else 0.0
-revpar_py      = float(df_prev["revpar"].mean()) if not df_prev.empty and "revpar" in df_prev.columns else 0.0
-
-# Dizionario KPI da mostrare (formattati)
-kpi_header = {
-    "Revenue": _fmt_eur(revenue),
-    "Occupazione": _fmt_pct(occ_pct),
-    "Notti vendute": _fmt_thousands(sold_nights),
-    "ADR": _fmt_eur(adr),
-    "RevPAR": _fmt_eur(revpar),
-}
-
-# Δ YoY in valore assoluto (Occupazione in punti percentuali)
-deltas_header = {
-    "Revenue": revenue - revenue_py,                 # € differenza
-    "Occupazione": occ_pct - occ_pct_py,             # pp differenza
-    "Notti vendute": sold_nights - sold_nights_py,   # notti differenza
-    "ADR": adr - adr_py,                             # € differenza
-    "RevPAR": revpar - revpar_py,                    # € differenza
-}
-
-# Render header + collegamento pulsanti ◀ ▶
-res = render_header_bar(
-    month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',       # es. "Ottobre 2025"
-    prev_month_label=prev_label,  # es. "Settembre 2025"
-    next_month_label=next_label,  # es. "Novembre 2025"
-    kpi=kpi_header,
-    deltas=deltas_header,         # Δ YoY con badge verde/rosso
-    key_prefix="hdr_main",
-)
-
-if res.get("prev_clicked"):
-    go_prev()
-    st.rerun()
-if res.get("next_clicked"):
-    go_next()
-    st.rerun()
     
     # === KPI ANNO CORRENTE (aggregati su tutto l'anno attivo) ===
 df_year = df_view[df_view["year"] == active_y].copy()
@@ -361,7 +292,75 @@ if df_view.empty:
     st.warning("Nessun dato per la selezione corrente.")
     st.stop()
 
+df_cur = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
+# Filtro stesso mese anno precedente (YoY)
+df_prev = df_view[(df_view["year"] == active_y - 1) & (df_view["month"] == active_m)].copy()
 
+# Helper formattazione IT
+def _fmt_thousands(n: int) -> str:
+    s = f"{n:,}"
+    return s.replace(",", "X").replace(".", ",").replace("X", ".")
+
+def _fmt_eur(x: float) -> str:
+    s = f"{x:,.2f}"
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{CURRENCY} {s}"
+
+def _fmt_pct(x: float) -> str:
+    s = f"{x:,.2f}"
+    s = s.replace(",", "X").replace(".", ",").replace("X", ".")
+    return f"{s}%"
+
+# --- KPI mese corrente (in linea con le convenzioni BJT/Kross) ---
+sold_nights = int(df_cur["occupied"].sum()) if not df_cur.empty and "occupied" in df_cur.columns else 0
+rooms_avail = float(df_cur["rooms_available"].sum()) if not df_cur.empty and "rooms_available" in df_cur.columns else 0.0
+revenue     = float(df_cur["revenue"].sum()) if not df_cur.empty and "revenue" in df_cur.columns else 0.0
+occ_pct     = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
+adr         = float(df_cur["adr"].mean()) if not df_cur.empty and "adr" in df_cur.columns else 0.0
+revpar      = float(df_cur["revpar"].mean()) if not df_cur.empty and "revpar" in df_cur.columns else 0.0
+
+# --- KPI YoY (stesso mese anno -1) ---
+sold_nights_py = int(df_prev["occupied"].sum()) if not df_prev.empty and "occupied" in df_prev.columns else 0
+rooms_avail_py = float(df_prev["rooms_available"].sum()) if not df_prev.empty and "rooms_available" in df_prev.columns else 0.0
+revenue_py     = float(df_prev["revenue"].sum()) if not df_prev.empty and "revenue" in df_prev.columns else 0.0
+occ_pct_py     = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
+adr_py         = float(df_prev["adr"].mean()) if not df_prev.empty and "adr" in df_prev.columns else 0.0
+revpar_py      = float(df_prev["revpar"].mean()) if not df_prev.empty and "revpar" in df_prev.columns else 0.0
+
+# Dizionario KPI da mostrare (formattati)
+kpi_header = {
+    "Revenue": _fmt_eur(revenue),
+    "Occupazione": _fmt_pct(occ_pct),
+    "Notti vendute": _fmt_thousands(sold_nights),
+    "ADR": _fmt_eur(adr),
+    "RevPAR": _fmt_eur(revpar),
+}
+
+# Δ YoY in valore assoluto (Occupazione in punti percentuali)
+deltas_header = {
+    "Revenue": revenue - revenue_py,                 # € differenza
+    "Occupazione": occ_pct - occ_pct_py,             # pp differenza
+    "Notti vendute": sold_nights - sold_nights_py,   # notti differenza
+    "ADR": adr - adr_py,                             # € differenza
+    "RevPAR": revpar - revpar_py,                    # € differenza
+}
+
+# Render header + collegamento pulsanti ◀ ▶
+res = render_header_bar(
+    month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',       # es. "Ottobre 2025"
+    prev_month_label=prev_label,  # es. "Settembre 2025"
+    next_month_label=next_label,  # es. "Novembre 2025"
+    kpi=kpi_header,
+    deltas=deltas_header,         # Δ YoY con badge verde/rosso
+    key_prefix="hdr_main",
+)
+
+if res.get("prev_clicked"):
+    go_prev()
+    st.rerun()
+if res.get("next_clicked"):
+    go_next()
+    st.rerun()
 
 # ------------------
 # SETUP MESE ATTIVO (ensure vars exist)
