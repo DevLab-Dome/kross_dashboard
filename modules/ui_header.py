@@ -74,35 +74,32 @@ def render_year_nav(
     prev_label: str | None = None,
     next_label: str | None = None,
 ) -> dict:
-    """
-    Bottoni PREV/NEXT con titolo 'Anno {current_year}' centrato *geometricamente*.
-    Usiamo 3 colonne principali e sub-colonne per spingere i bottoni ai bordi,
-    così il titolo sta esattamente al centro.
-    """
     import streamlit as st
 
     prev_text = prev_label if prev_label is not None else str(current_year - 1)
     next_text = next_label if next_label is not None else str(current_year + 1)
 
-    # Tre colonne principali: [sinistra][centro][destra]
-    c_left, c_center, c_right = st.columns([1, 2, 1])
+    # Griglia identica ai KPI: 5 colonne -> [Revenue][Occ][Notti][ADR][RevPAR]
+    g1, g2, g3, g4, g5 = st.columns(5)
 
-    # Sinistra: sub-columns per allineare il bottone a destra della sua zona
-    sc1, sc2 = c_left.columns([5, 1])
-    with sc2:
-        prev_clicked = st.button(prev_text, key=f"{key_prefix}_prev")
+    # 1) Bottone PREV centrato sulla colonna "Revenue"
+    with g1:
+        a, b, c = st.columns([1, 1, 1])  # b è il centro
+        with b:
+            prev_clicked = st.button(prev_text, key=f"{key_prefix}_prev")
 
-    # Centro: titolo centrato
-    with c_center:
+    # 2) Titolo centrato perfetto nella colonna centrale (3ª col)
+    with g3:
         st.markdown(
             f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>Anno {current_year}</div>",
             unsafe_allow_html=True,
         )
 
-    # Destra: sub-columns per allineare il bottone a sinistra della sua zona
-    sc3, sc4 = c_right.columns([1, 5])
-    with sc3:
-        next_clicked = st.button(next_text, key=f"{key_prefix}_next")
+    # 3) Bottone NEXT centrato sulla colonna "RevPAR medio"
+    with g5:
+        a2, b2, c2 = st.columns([1, 1, 1])  # b2 è il centro
+        with b2:
+            next_clicked = st.button(next_text, key=f"{key_prefix}_next")
 
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
     
