@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-from modules.ui_header import render_header_bar, render_year_bar
+from modules.ui_header import render_header_bar, render_year_bar, render_year_nav
 def inject_base_styles():
     import streamlit as st
     st.markdown(
