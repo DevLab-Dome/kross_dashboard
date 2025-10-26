@@ -233,55 +233,72 @@ if res.get("next_clicked"):
     st.rerun()
 
 # -----------------------------------------------------------------------------
-# KPI ANNO CORRENTE (aggregati sull'anno attivo) + YoY ANNO
+# KPI ANNO CORRENTE (aggregati sull'anno attivo) + YoY ANNO  —  ROBUSTO AI NOMI COLONNA
 # -----------------------------------------------------------------------------
-df_year = df_view[df_view["year"] == active_y].copy()
+def _sum_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
+    """Somma la prima colonna esistente nell'elenco, altrimenti 0."""
+    if df is None or df.empty:
+        return 0.0
+    for c in candidates:
+        if c in df.columns:
+            try:
+                return float(df[c].sum())
+            except Exception:
+                pass
+    return 0.0
+
+def _mean_first_present(df: pd.DataFrame, candidates: list[str]) -> float:
+    """Media della prima colonna esistente nell'elenco, altrimenti 0."""
+    if df is None or df.empty:
+        return 0.0
+    for c in candidates:
+        if c in df.columns:
+            try:
+                return float(df[c].mean())
+            except Exception:
+                pass
+    return 0.0
+
+# dataset anno corrente e anno precedente
+df_year    = df_view[df_view["year"] == active_y].copy()
 df_year_py = df_view[df_view["year"] == active_y - 1].copy()
 
-sold_nights_y = int(df_year["occupied"].sum()) if "occupied" in df_year.columns else 0
-rooms_avail_y = float(df_year["rooms_available"].sum()) if "rooms_available" in df_year.columns else 0.0
-revenue_y     = float(df_year["revenue"].sum()) if "revenue" in df_year.columns else 0.0
-occ_pct_y     = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
-adr_y         = float(df_year["adr"].mean()) if "adr" in df_year.columns else 0.0
-revpar_y      = float(df_year["revpar"].mean()) if "revpar" in df_year.columns else 0.0
+# --- Notti vendute (annuali): prova 'notti', poi 'nights', 'rooms_sold', 'sold_nights', 'occupied'
+NIGHTS_COLS = ["notti", "nights", "rooms_sold", "sold_nights", "occupied"]
+# --- Camere disponibili (annuali)
+ROOMS_AV_COLS = ["rooms_available", "camere_disponibili", "rooms_avail"]
 
-sold_nights_y_py = int(df_year_py["occupied"].sum()) if not df_year_py.empty and "occupied" in df_year_py.columns else 0
-rooms_avail_y_py = float(df_year_py["rooms_available"].sum()) if not df_year_py.empty and "rooms_available" in df_year_py.columns else 0.0
-revenue_y_py     = float(df_year_py["revenue"].sum()) if not df_year_py.empty and "revenue" in df_year_py.columns else 0.0
-occ_pct_y_py     = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
-adr_y_py         = float(df_year_py["adr"].mean()) if not df_year_py.empty and "adr" in df_year_py.columns else 0.0
-revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty and "revpar" in df_year_py.columns else 0.0
-# --- Override robusto: Notti annue e Occupazione annua (fallback 'notti' -> 'occupied') ---
-def _sold_nights_total(df: pd.DataFrame) -> int:
-    if df is None or df.empty:
-        return 0
-    if "notti" in df.columns:
-        return int(df["notti"].sum())
-    if "occupied" in df.columns:
-        return int(df["occupied"].sum())
-    return 0
+sold_nights_y    = int(_sum_first_present(df_year, NIGHTS_COLS))
+sold_nights_y_py = int(_sum_first_present(df_year_py, NIGHTS_COLS))
 
-sold_nights_y = _sold_nights_total(df_year)
-sold_nights_y_py = _sold_nights_total(df_year_py)
+rooms_avail_y    = _sum_first_present(df_year, ROOMS_AV_COLS)
+rooms_avail_y_py = _sum_first_present(df_year_py, ROOMS_AV_COLS)
 
-# ricalcola Occupazione annua con le notti corrette
-rooms_avail_y = float(df_year["rooms_available"].sum()) if "rooms_available" in df_year.columns else 0.0
-rooms_avail_y_py = float(df_year_py["rooms_available"].sum()) if not df_year_py.empty and "rooms_available" in df_year_py.columns else 0.0
-occ_pct_y = (sold_nights_y / rooms_avail_y * 100.0) if rooms_avail_y > 0 else 0.0
+# --- Revenue annuo
+revenue_y    = _sum_first_present(df_year, ["revenue", "ricavi", "totale_revenue"])
+revenue_y_py = _sum_first_present(df_year_py, ["revenue", "ricavi", "totale_revenue"])
+
+# --- ADR/RevPAR annui (medie)
+adr_y         = _mean_first_present(df_year, ["adr"])
+adr_y_py      = _mean_first_present(df_year_py, ["adr"])
+revpar_y      = _mean_first_present(df_year, ["revpar"])
+revpar_y_py   = _mean_first_present(df_year_py, ["revpar"])
+
+# --- Occupazione annua ricalcolata su notti / camere disponibili
+occ_pct_y    = (sold_nights_y    / rooms_avail_y    * 100.0) if rooms_avail_y    > 0 else 0.0
 occ_pct_y_py = (sold_nights_y_py / rooms_avail_y_py * 100.0) if rooms_avail_y_py > 0 else 0.0
 
+# --- Formattazioni per la barra anno
 kpi_year = {
     "Revenue": _fmt_eur(revenue_y),
-    "Occupazione": _fmt_pct(occ_pct_y),
-    "Occupazione (anno)": _fmt_pct(occ_pct_y),          # <-- chiave aggiuntiva
-    "Notti vendute": _fmt_thousands(sold_nights_y),
-    "Notti vendute (anno)": _fmt_thousands(sold_nights_y),  # <-- chiave aggiuntiva
+    "Occupazione": _fmt_pct(occ_pct_y),           # <-- chiave esatta usata dal componente
+    "Notti vendute": _fmt_thousands(sold_nights_y), # <-- chiave esatta usata dal componente
     "ADR": _fmt_eur(adr_y),
     "RevPAR": _fmt_eur(revpar_y),
 }
 deltas_year = {
     "Revenue": revenue_y - revenue_y_py,
-    "Occupazione": occ_pct_y - occ_pct_y_py,        # pp
+    "Occupazione": occ_pct_y - occ_pct_y_py,             # punti percentuali
     "Notti vendute": sold_nights_y - sold_nights_y_py,
     "ADR": adr_y - adr_y_py,
     "RevPAR": revpar_y - revpar_y_py,
