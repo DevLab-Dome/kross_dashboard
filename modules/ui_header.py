@@ -125,34 +125,33 @@ def render_header_bar(
 
     container = st.container()
     with container:
-        # Riga 1: Navigazione mese
-        # Riga 1: Navigazione allineata su 5 colonne (come i KPI)
-g1, g2, g3, g4, g5 = st.columns(5)
+        # Navigazione allineata su 5 colonne (coerente con la griglia KPI)
+        g1, g2, g3, g4, g5 = st.columns(5)
 
-# (1) Bottone PREV centrato sulla colonna 1 (allineata a "Revenue")
-with g1:
-    _l, _c, _r = st.columns([1, 1, 1])
-    with _c:
-        prev_clicked = st.button(
-            prev_month_label if prev_month_label else "—",
-            key=f"{key_prefix}_prev",
-        )
+        # (1) PREV centrato sulla colonna 1 (allineata a "Revenue")
+        with g1:
+            _l, _c, _r = st.columns([1, 1, 1])
+            with _c:
+                prev_clicked = st.button(
+                    prev_month_label if prev_month_label else "—",
+                    key=f"{key_prefix}_prev",
+                )
 
-# (2) Etichetta centrale nella colonna 3 (centro griglia)
-with g3:
-    st.markdown(
-        f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>{month_label}</div>",
-        unsafe_allow_html=True,
-    )
+        # (2) Etichetta centrale nella colonna 3 (centro griglia)
+        with g3:
+            st.markdown(
+                f"<div style='text-align:center; font-size:1.1rem; font-weight:700;'>{month_label}</div>",
+                unsafe_allow_html=True,
+            )
 
-# (3) Bottone NEXT centrato sulla colonna 5 (allineata a "RevPAR medio")
-with g5:
-    _l2, _c2, _r2 = st.columns([1, 1, 1])
-    with _c2:
-        next_clicked = st.button(
-            next_month_label if next_month_label else "—",
-            key=f"{key_prefix}_next",
-        )
+        # (3) NEXT centrato sulla colonna 5 (allineata a "RevPAR medio")
+        with g5:
+            _l2, _c2, _r2 = st.columns([1, 1, 1])
+            with _c2:
+                next_clicked = st.button(
+                    next_month_label if next_month_label else "—",
+                    key=f"{key_prefix}_next",
+                )
 
         # Spacer sottile
         st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
@@ -186,8 +185,9 @@ with g5:
                 badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
                 _kpi_block("RevPAR", kpi.get("RevPAR", "-"), badge, help_text="Media giornaliera RevPAR")
 
-    # Separatore inferiore
-    st.markdown("---")
+        # Separatore inferiore
+        st.markdown("---")
+
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # --- YEAR BAR (ANNO) -------------------------------------------------------------------------
