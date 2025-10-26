@@ -120,4 +120,55 @@ def render_header_bar(
 
     st.markdown("---")
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
+def render_year_bar(
+    title_html: str,
+    kpi: Dict[str, str],
+    deltas: Optional[Dict[str, float]] = None,
+    key_prefix: str = "ybar",
+) -> None:
+    """
+    Barra KPI per l'ANNO (stessa presentazione, senza bottoni ◀ ▶).
+    - title_html: es. "Anno corrente<br><span style='font-size:0.9rem;font-weight:400'>(vs {YYYY})</span>"
+    - kpi: {"Revenue": "€ 123.456,78", "Occupazione": "85,20%", "Notti vendute": "1.234", "ADR": "€ 120,00", "RevPAR": "€ 95,00"}
+    - deltas: differenze YoY in valore assoluto (Occupazione in pp)
+    """
+    deltas = deltas or {}
+    box = st.container()
+    with box:
+        # Titolo centrato (come header mese)
+        st.markdown(
+            f"<div style='text-align:center;font-size:1.1rem;font-weight:700'>{title_html}</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown("<div style='height:0.25rem'></div>", unsafe_allow_html=True)
+
+        # 5 KPI compatti allineati come l’header
+        c1, c2, c3, c4, c5 = st.columns(5)
+
+        with c1:
+            d = deltas.get("Revenue")
+            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
+            _kpi_block("Revenue (anno)", kpi.get("Revenue", "-"), badge, help_text="Somma Totale revenue dell'anno")
+
+        with c2:
+            d = deltas.get("Occupazione")
+            badge = _delta_badge(d, " pp", positive_is_good=True) if d is not None else None
+            _kpi_block("Occupazione", kpi.get("Occupazione", "-"), badge, help_text="Notti / Camere disponibili * 100")
+
+        with c3:
+            d = deltas.get("Notti vendute")
+            badge = _delta_badge(d, "", positive_is_good=True) if d is not None else None
+            _kpi_block("Notti vendute", kpi.get("Notti vendute", "-"), badge, help_text="Somma notti vendute nell'anno")
+
+        with c4:
+            d = deltas.get("ADR")
+            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
+            _kpi_block("ADR medio", kpi.get("ADR", "-"), badge, help_text="Media giornaliera ADR (anno)")
+
+        with c5:
+            d = deltas.get("RevPAR")
+            badge = _delta_badge(d, "€", positive_is_good=True) if d is not None else None
+            _kpi_block("RevPAR medio", kpi.get("RevPAR", "-"), badge, help_text="Media giornaliera RevPAR (anno)")
+
+    st.markdown("---")
 
