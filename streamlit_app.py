@@ -199,6 +199,7 @@ render_year_bar(
 st.warning("MARKER: se vedi questo messaggio giallo, la sezione ANNO è stata eseguita.")
 
     # Presentazione (stile KPI semplice)
+"""
     st.markdown("### Anno corrente")
     st.caption(f"Analisi {active_y} (vs {active_y-1})")
 
