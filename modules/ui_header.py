@@ -49,6 +49,7 @@ def render_header_bar(
     key_prefix: str = "hdr",
     show_kpis: bool = True,
 ) -> Dict[str, bool]:
+  
     """Render della barra superiore della dashboard.
 
     Parametri
