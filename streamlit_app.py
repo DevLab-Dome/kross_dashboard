@@ -46,10 +46,11 @@ def inject_base_styles():
        div.stButton>button{
     padding: var(--dl-pad);
     border-radius: 8px;
-    border:1px solid #d1d5db;
-    background:#fff !important;            /* fondo chiaro fisso */
-    color: var(--dl-fg) !important;        /* testo scuro, sempre leggibile */
-    font-weight: 600;                       /* più contrasto visivo */
+    border:1px solid #cbd5e1;        /* contrasto bordo ↑ */
+    background:#fff !important;
+    color: var(--dl-fg) !important;
+    font-weight: 600;
+    transition: border-color .12s ease, box-shadow .12s ease;
 }
         div.stButton>button:hover{ border-color: var(--dl-accent); box-shadow:0 0 0 3px var(--dl-ring); }
         div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
