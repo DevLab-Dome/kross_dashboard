@@ -255,7 +255,9 @@ revpar_y_py      = float(df_year_py["revpar"].mean()) if not df_year_py.empty an
 kpi_year = {
     "Revenue": _fmt_eur(revenue_y),
     "Occupazione": _fmt_pct(occ_pct_y),
+    "Occupazione (anno)": _fmt_pct(occ_pct_y),          # <-- chiave aggiuntiva
     "Notti vendute": _fmt_thousands(sold_nights_y),
+    "Notti vendute (anno)": _fmt_thousands(sold_nights_y),  # <-- chiave aggiuntiva
     "ADR": _fmt_eur(adr_y),
     "RevPAR": _fmt_eur(revpar_y),
 }
