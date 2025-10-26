@@ -386,15 +386,24 @@ with cols[1]:
     )
     st.markdown('</div>', unsafe_allow_html=True)  # chiude .dl-actions
 st.markdown('</div>', unsafe_allow_html=True)      # chiude .dl-strip
-res = render_header_bar(
-    month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
-    prev_month_label=prev_label,
-    next_month_label=next_label,
-    kpi=kpi_header,          # resta, ma ignorato quando show_kpis=False
-    deltas=deltas_header,    # idem
-    key_prefix="hdr_main",
-    show_kpis=False,         # ← solo pulsanti per la striscia mese
-)
+# --- STRISCIA MESE (wrapper tipografico/layout) ---
+st.markdown('<div class="dl-strip">', unsafe_allow_html=True)
+cols = st.columns([1, 5])
+with cols[0]:
+    st.markdown('<span class="dl-title">MESE</span>', unsafe_allow_html=True)
+with cols[1]:
+    st.markdown('<div class="dl-actions">', unsafe_allow_html=True)
+    res = render_header_bar(
+        month_label=f'{curr_label}<br><span style="font-size:0.9rem;font-weight:400">(anno di comparazione: {active_y-1})</span>',
+        prev_month_label=prev_label,
+        next_month_label=next_label,
+        kpi=kpi_header,          # resta, ma ignorato quando show_kpis=False
+        deltas=deltas_header,    # idem
+        key_prefix="hdr_main",
+        show_kpis=False,         # ← solo pulsanti per la striscia mese
+    )
+    st.markdown('</div>', unsafe_allow_html=True)  # chiude .dl-actions
+st.markdown('</div>', unsafe_allow_html=True)      # chiude .dl-strip
 
 if res.get("prev_clicked"):
     go_prev()
