@@ -285,19 +285,6 @@ def _five_slots():
     """Unica griglia condivisa: [2,1,3,1,2] con gap large. Garantisce allineamento 1:1 tra righe."""
     return st.columns([2, 1, 3, 1, 2], gap="large")
 
-# === NAVIGAZIONE ANNO (prima della sezione mese) ===
-yhdr = render_year_header_1547(active_y)
-
-# Cambio anno: aggiorna anche il mese alla mensilità corrente del calendario, mantenendo lo stesso anno interrogato
-if yhdr.get("prev_clicked"):
-    st.session_state["active_year"] = active_y - 1
-    st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
-    st.rerun()
-if yhdr.get("next_clicked"):
-    st.session_state["active_year"] = active_y + 1
-    st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
-    st.rerun()
-
 def render_year_header_1547(year_label: int):
     """Navigazione ANNO su 5 colonne, identica alla barra mese."""
     prev_year = year_label - 1
@@ -445,6 +432,19 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
 # -----------------------------------------------------------------------------
 # RENDER PAGINA
 # -----------------------------------------------------------------------------
+# === NAVIGAZIONE ANNO (prima della sezione mese) ===
+yhdr = render_year_header_1547(active_y)
+
+# Cambio anno: aggiorna anche il mese alla mensilità corrente del calendario, mantenendo lo stesso anno interrogato
+if yhdr.get("prev_clicked"):
+    st.session_state["active_year"] = active_y - 1
+    st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
+    st.rerun()
+if yhdr.get("next_clicked"):
+    st.session_state["active_year"] = active_y + 1
+    st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
+    st.rerun()
+
 hdr = render_month_header_1547(
     month_label=curr_label,
     prev_month_label=prev_label,
