@@ -331,12 +331,15 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
             st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- DESTRA: RevPAR medio (centrato) ---
+    # --- DESTRA: RevPAR medio centrato sotto il pulsante DX ---
     with zone_right:
-        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+        # leggero sbilanciamento verso destra (speculare alla sinistra)
+        r1, r2 = st.columns([0.85, 1.15], gap="large")
+        with r2:
+            st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+            st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)  # chiude kpi-section
     st.divider()
