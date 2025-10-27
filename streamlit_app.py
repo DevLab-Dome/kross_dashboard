@@ -275,7 +275,7 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
   align-items: center;   /* centra il contenuto nel proprio slot */
 }
 .kpi-label { font-size: 14px; color: #6b7280; margin-bottom: 6px; white-space: nowrap; }
-.kpi-value { font-size: 36px; font-weight: 700; color: #111827; line-height: 1.15; white-space: nowrap; }
+.kpi-value { font-size: 36px; font-weight: 400; color: #111827; line-height: 1.15; white-space: nowrap; }
 .kpi-pill  { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px;
              font-size: 13px; font-weight: 600; margin-top: 8px; }
 .kpi-pill.up   { background: #ecfdf5; color: #16a34a; }
