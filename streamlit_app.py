@@ -42,7 +42,7 @@ div.stButton>button:disabled{
 /* Header mese */
 .mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;}
 .mh-center{text-align:center;margin-top:2px;}
-.mh-month{font-weight:700;font-size:22px;margin:0;}
+.mh-month{font-weight:700;font-size:28px;line-height:1.1;margin:0;}
 .mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
 div.mh-btn{ margin-bottom:2px; }
 div.mh-btn > button{
