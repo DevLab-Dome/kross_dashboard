@@ -298,7 +298,7 @@ def render_month_header_1547(month_label: str, prev_month_label: str, next_month
         st.markdown(f'<div class="mh-under">{prev_month_label}</div>', unsafe_allow_html=True)
 
     with c3:  # mese corrente al centro + testo comparazione (centrato anche verticalmente)
-    st.markdown(
+        st.markdown(
         f'<div class="mh-vcenter mh-center">'
         f'  <p class="mh-month">{month_label}</p>'
         f'  <div class="mh-sub">(anno di comparazione: {compare_year})</div>'
