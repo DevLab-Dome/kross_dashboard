@@ -241,10 +241,23 @@ if rooms_avail_py == 0.0:
 # Revenue (somma), ADR/RevPAR (media giornaliera)
 revenue    = _first_sum(df_cur,  ["revenue","totale_revenue","ricavi"])
 revenue_py = _first_sum(df_prev, ["revenue","totale_revenue","ricavi"])
-adr        = _first_mean(df_cur,  ["adr","ADR"])
-adr_py     = _first_mean(df_prev, ["adr","ADR"])
-revpar     = _first_mean(df_cur,  ["revpar","RevPAR"])
-revpar_py  = _first_mean(df_prev, ["revpar","RevPAR"])
+# --- ADR: prima formula (Revenue / Notti vendute), altrimenti media colonna se disponibile
+adr_calc    = (revenue / sold_nights)       if sold_nights    > 0 else 0.0
+adr_col     = _first_mean(df_cur,  ["adr","ADR"])
+adr         = adr_calc if adr_calc > 0 else (adr_col or 0.0)
+
+adr_py_calc = (revenue_py / sold_nights_py) if sold_nights_py > 0 else 0.0
+adr_py_col  = _first_mean(df_prev, ["adr","ADR"])
+adr_py      = adr_py_calc if adr_py_calc > 0 else (adr_py_col or 0.0)
+
+# --- RevPAR: prima formula (Revenue / Camere disponibili), altrimenti media colonna se disponibile
+revpar_calc    = (revenue / rooms_avail)       if rooms_avail    > 0 else 0.0
+revpar_col     = _first_mean(df_cur,  ["revpar","RevPAR"])
+revpar         = revpar_calc if revpar_calc > 0 else (revpar_col or 0.0)
+
+revpar_py_calc = (revenue_py / rooms_avail_py) if rooms_avail_py > 0 else 0.0
+revpar_py_col  = _first_mean(df_prev, ["revpar","RevPAR"])
+revpar_py      = revpar_py_calc if revpar_py_calc > 0 else (revpar_py_col or 0.0)
 
 # Occupazione
 occ_pct    = (sold_nights    / rooms_avail    * 100.0) if rooms_avail    > 0 else 0.0
