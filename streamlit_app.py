@@ -294,7 +294,7 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
         val = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-        # --- ZONA SINISTRA: Revenue mese centrato sotto il pulsante SX, Occupazione accanto ---
+    # --- ZONA SINISTRA: Revenue mese centrato sotto il pulsante SX, Occupazione accanto ---
     with zone_left:
         # leggero sbilanciamento verso sinistra per centrare esattamente sotto il pulsante
         c1, c2 = st.columns([1.15, 0.85], gap="large")
@@ -317,15 +317,18 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
             )
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- CENTRO: Notti vendute (centrato) + ADR medio ---
+    # --- CENTRO: Notti vendute perfettamente centrato sotto il mese, ADR a destra ---
     with zone_center:
-        c3, c4 = st.columns([1,1], gap="large")
-        with c3:
+        # Tre colonne interne: [spacer] [Notti vendute] [ADR]
+        c_sp, c_mid, c_adr = st.columns([1, 1, 1], gap="large")
+
+        with c_mid:  # ← esattamente al centro della zona
             st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        with c4:
+
+        with c_adr:  # ADR medio sulla destra della zona centrale
             st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
