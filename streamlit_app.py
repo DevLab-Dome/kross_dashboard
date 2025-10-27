@@ -306,7 +306,7 @@ def render_year_header_1547(year_label: int):
             f"""
             <div class="mh-center" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:110px;">
               <p class="mh-month" style="font-size:28px; line-height:1.1; font-weight:700;">Anno {year_label}</p>
-              <div class="mh-sub" style="opacity:.7; font-weight:700;">(anno di comparazione: {year_label-1})</div>
+              <div class="mh-sub">(anno di comparazione: {year_label-1})</div>
             </div>
             """,
             unsafe_allow_html=True
