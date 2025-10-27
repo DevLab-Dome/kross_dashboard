@@ -230,19 +230,27 @@ div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px
 </style>
 """, unsafe_allow_html=True)
 
-    col_l, col_c, col_r = st.columns([2,3,2], gap="large")
-    with col_l:
+    # 5 colonne: [2, 1, 3, 1, 2]  => SX | (vuota) | MESE | (vuota) | DX
+    c1, c2, c3, c4, c5 = st.columns([2,1,3,1,2], gap="large")
+
+    with c1:  # pulsante SX
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
         prev_clicked = st.button("◀", key="mh_prev", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under">{prev_month_label}</div>', unsafe_allow_html=True)
-    with col_c:
+
+    # c2: colonna vuota (spacer invisibile)
+
+    with c3:  # mese al centro
         st.markdown(
             f'<div class="mh-center"><p class="mh-month">{month_label}</p>'
             f'<div class="mh-sub">(anno di comparazione: {compare_year})</div></div>',
             unsafe_allow_html=True
         )
-    with col_r:
+
+    # c4: colonna vuota (spacer invisibile)
+
+    with c5:  # pulsante DX
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
         next_clicked = st.button("▶", key="mh_next", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
