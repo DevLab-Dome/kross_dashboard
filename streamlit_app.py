@@ -263,10 +263,10 @@ div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px
 # STRISCIA MESE – KPI (allineamento su 5 ancoraggi)
 # -----------------------------------------------------------------------------
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
-    # --- STILI ---
+    # --- STILI (nessun padding orizzontale: centriamo rigidamente ogni colonna) ---
     st.markdown("""
 <style>
-.kpi-col{ display:flex; flex-direction:column; align-items:center; }
+.kpi-col{ width:100%; display:flex; flex-direction:column; align-items:center; }
 .kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; white-space:nowrap; }
 .kpi-value{ font-size:36px; font-weight:700; color:#111827; line-height:1.15; white-space:nowrap; }
 .kpi-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
@@ -284,40 +284,35 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
         val  = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    # === Griglia a 5 colonne allineata alla navigazione: [2, 1, 3, 1, 2] ===
+    # Griglia IDENTICA alla navigazione: [2, 1, 3, 1, 2]
     col_rev, col_occ, col_notti, col_adr, col_rpar = st.columns([2, 1, 3, 1, 2], gap="large")
 
-    # 1) Revenue mese — sotto pulsante SX
     with col_rev:
-        st.markdown('<div class="kpi-col" style="padding-right:16px;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 2) Occupazione — punto intermedio sinistro
     with col_occ:
-        st.markdown('<div class="kpi-col" style="padding:0 16px;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 3) Notti vendute — sotto il mese (centro)
     with col_notti:
         st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 4) ADR medio — punto intermedio destro
     with col_adr:
-        st.markdown('<div class="kpi-col" style="padding:0 16px;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 5) RevPAR medio — sotto pulsante DX
     with col_rpar:
-        st.markdown('<div class="kpi-col" style="padding-left:16px;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
