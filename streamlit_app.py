@@ -214,28 +214,27 @@ deltas_header = {
 }
 
 # -----------------------------------------------------------------------------
-# STRISCIA MESE – layout identico allo screenshot 15:47
+# STRISCIA MESE – layout identico allo screenshot 15:47 (spazi ridotti)
 # -----------------------------------------------------------------------------
 def render_month_header_1547(month_label: str, prev_month_label: str, next_month_label: str, compare_year: int):
-    # CSS dedicato al solo header mese (stile screenshot 15:47)
     st.markdown("""
 <style>
 .mh-wrap{margin-top:6px;}
-.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:8px;}
+.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;} /* prima: 8px */
 .mh-center{text-align:center;margin-top:2px;}
 .mh-month{font-weight:700;font-size:22px;margin:0;}
 .mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
 /* Bottoni freccia come "input" con bordo */
+div.mh-btn{ margin-bottom:2px; }   /* riduce gap sotto il bottone */
 div.mh-btn > button{
     border:1px solid #e5e7eb !important; border-radius:10px !important;
     background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
-    min-height:44px; min-width:120px;
+    min-height:44px; min-width:120px; margin-bottom:0 !important; /* evita extra-gap */
 }
 div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important; }
 </style>
 """, unsafe_allow_html=True)
 
-    # Tre colonne: freccia sx + label mese (con sotto comparazione) + freccia dx
     col_l, col_c, col_r = st.columns([2,3,2], gap="large")
     with col_l:
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
