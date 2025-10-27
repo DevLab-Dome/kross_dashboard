@@ -286,6 +286,145 @@ def _five_slots():
     return st.columns([2, 1, 3, 1, 2], gap="large")
 
 def render_year_header_1547(year_label: int):
+    # -----------------------------------------------------------------------------
+# STRISCIA ANNO – KPI (stessa grafica/struttura della striscia MESE)
+# -----------------------------------------------------------------------------
+def _compute_year_kpis(df_all_like: pd.DataFrame, year: int) -> tuple[dict, dict]:
+    """Calcola KPI annuali + delta YoY sullo stesso perimetro di strutture selezionate."""
+    df_y  = df_all_like[df_all_like["year"] == year].copy()
+    df_py = df_all_like[df_all_like["year"] == year - 1].copy()
+
+    # --- helper robusti su colonne possibili ---
+    def _sum_first(df: pd.DataFrame, cands: list[str]) -> float:
+        if df is None or df.empty: return 0.0
+        for c in cands:
+            if c in df.columns:
+                try: return float(df[c].sum())
+                except: pass
+        return 0.0
+
+    def _mean_first(df: pd.DataFrame, cands: list[str]) -> float:
+        if df is None or df.empty: return 0.0
+        for c in cands:
+            if c in df.columns:
+                try: return float(df[c].mean())
+                except: pass
+        return 0.0
+
+    # Fallback camere disponibili anno (se mancano rooms_available nel file)
+    def _fallback_rooms_avail_year(df_year_like: pd.DataFrame, default_rooms: int) -> float:
+        if df_year_like is None or df_year_like.empty: return 0.0
+        tot = 0.0
+        props = df_year_like["property"].dropna().unique().tolist() if "property" in df_year_like.columns else [None]
+        for p in props:
+            dfp = df_year_like if p is None else df_year_like[df_year_like["property"] == p]
+            rooms = int(ROOMS_MAP.get(p, default_rooms)) if p is not None else int(default_rooms)
+            for _, r in dfp[["year", "month"]].drop_duplicates().iterrows():
+                tot += rooms * calendar.monthrange(int(r["year"]), int(r["month"]))[1]
+        return float(tot)
+
+    # --- KPI anno corrente ---
+    sold_y   = int(_sum_first(df_y,  ["occupied","sold_nights","rooms_sold","nights","notti"]))
+    rooms_y  = _sum_first(df_y, ["rooms_available","rooms_avail","camere_disponibili"]) or _fallback_rooms_avail_year(df_y, ROOMS_DEFAULT)
+    rev_y    = _sum_first(df_y,  ["revenue","totale_revenue","ricavi"])
+    adr_y    = _mean_first(df_y, ["adr"])
+    rpar_y   = _mean_first(df_y, ["revpar"])
+    occ_y    = (sold_y / rooms_y * 100.0) if rooms_y > 0 else 0.0
+
+    # --- KPI anno precedente (per delta YoY) ---
+    sold_py  = int(_sum_first(df_py,  ["occupied","sold_nights","rooms_sold","nights","notti"]))
+    rooms_py = _sum_first(df_py, ["rooms_available","rooms_avail","camere_disponibili"]) or _fallback_rooms_avail_year(df_py, ROOMS_DEFAULT)
+    rev_py   = _sum_first(df_py,  ["revenue","totale_revenue","ricavi"])
+    adr_py   = _mean_first(df_py, ["adr"])
+    rpar_py  = _mean_first(df_py, ["revpar"])
+    occ_py   = (sold_py / rooms_py * 100.0) if rooms_py > 0 else 0.0
+
+    # --- formattazioni coerenti con la striscia mese ---
+    def _fmt_eur(x: float) -> str:
+        s = f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"{CURRENCY} {s}"
+
+    def _fmt_pct(x: float) -> str:
+        s = f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f"{s}%"
+
+    def _fmt_th(n: int) -> str:
+        return f"{n:,}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    kpi_year = {
+        "Revenue":      _fmt_eur(rev_y),
+        "Occupazione":  _fmt_pct(occ_y),
+        "Notti vendute":_fmt_th(sold_y),
+        "ADR":          _fmt_eur(adr_y),
+        "RevPAR":       _fmt_eur(rpar_y),
+    }
+    deltas_year = {
+        "Revenue":       rev_y  - rev_py,
+        "Occupazione":   occ_y  - occ_py,
+        "Notti vendute": sold_y - sold_py,
+        "ADR":           adr_y  - adr_py,
+        "RevPAR":        rpar_y - rpar_py,
+    }
+    return kpi_year, deltas_year
+
+
+def render_year_kpis_1547(kpi: dict, deltas: dict):
+    """UI della striscia dati ANNO – identica alla striscia dati MESE (stesse classi, stessi layout)."""
+    # Stessi stili della striscia mese (li includiamo anche qui perché la barra anno è renderizzata prima)
+    st.markdown("""
+<style>
+.kpi-col{ width:100%; display:flex; flex-direction:column; align-items:center; }
+.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; white-space:nowrap; }
+.kpi-value{ font-size:36px; font-weight:400; color:#111827; line-height:1.15; white-space:nowrap; } /* no bold */
+.kpi-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+           font-size:13px; font-weight:600; margin-top:8px; }
+.kpi-pill.up{ background:#ecfdf5; color:#16a34a; }
+.kpi-pill.down{ background:#fef2f2; color:#dc2626; }
+</style>
+""", unsafe_allow_html=True)
+
+    def pill(delta: float) -> str:
+        if delta is None: return ""
+        cls  = "up" if delta >= 0 else "down"
+        icon = "↑" if delta >= 0 else "↓"
+        val  = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
+
+    # Identica griglia: [2,1,3,1,2]
+    col_rev, col_occ, col_notti, col_adr, col_rpar = _five_slots()
+
+    with col_rev:
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Revenue anno</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill(deltas.get("Revenue"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_occ:
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill(deltas.get("Occupazione"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_notti:
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_adr:
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill(deltas.get("ADR"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_rpar:
+        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill(deltas.get("RevPAR"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
+
     """Navigazione ANNO su 5 colonne, identica alla barra mese."""
     prev_year = year_label - 1
     next_year = year_label + 1
