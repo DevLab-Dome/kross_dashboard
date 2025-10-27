@@ -287,28 +287,36 @@ def _five_slots():
 
 def render_year_header_1547(year_label: int):
     """
-    Header ANNO: titolo centrato e pulsanti SX/DX.
+    Header ANNO: titolo centrato e pulsanti SX/DX con etichette sotto i bottoni,
+    identico alla struttura della navigazione MESE (usa _five_slots()).
     Ritorna: {"prev_clicked": bool, "next_clicked": bool}
     """
-    col_l, col_c, col_r = st.columns([1,3,1])
-    with col_l:
-        prev_clicked = st.button("◀", key="year_prev_btn", use_container_width=True)
-    with col_c:
+    c1, c2, c3, c4, c5 = _five_slots()  # stessa griglia 2–1–3–1–2
+    prev_year = year_label - 1
+    next_year = year_label + 1
+
+    with c1:  # pulsante sinistro + label anno precedente
+        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
+        prev_clicked = st.button("◀", key="yh_prev", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under">{prev_year}</div>', unsafe_allow_html=True)
+
+    with c3:  # titolo centrale su due righe (come mese)
         st.markdown(
             f"""
-            <div style="text-align:center; line-height:1.05;">
-                <div style="font-size:22px; font-weight:700; color:#065f46;">
-                    Anno {year_label}
-                </div>
-                <div style="font-size:14px; font-weight:600; color:#065f46;">
-                    (anno di comparazione: {year_label-1})
-                </div>
+            <div class="mh-center" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:110px;">
+              <p class="mh-month" style="font-size:28px; line-height:1.1; font-weight:700; color:#065f46;">Anno {year_label}</p>
+              <div class="mh-sub" style="opacity:.7;">(anno di comparazione: {year_label-1})</div>
             </div>
             """,
             unsafe_allow_html=True
         )
-    with col_r:
-        next_clicked = st.button("▶", key="year_next_btn", use_container_width=True)
+
+    with c5:  # pulsante destro + label anno successivo
+        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
+        next_clicked = st.button("▶", key="yh_next", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under">{next_year}</div>', unsafe_allow_html=True)
 
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
