@@ -317,6 +317,7 @@ def render_year_header_1547(year_label: int):
 # -----------------------------------------------------------------------------
 def _compute_year_kpis(df_all_like: pd.DataFrame, year: int) -> tuple[dict, dict]:
     """Calcola KPI annuali + delta YoY sullo stesso perimetro di strutture selezionate."""
+         import calendar
     df_y  = df_all_like[df_all_like["year"] == year].copy()
     df_py = df_all_like[df_all_like["year"] == year - 1].copy()
 
