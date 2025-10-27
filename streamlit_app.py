@@ -613,36 +613,9 @@ if yhdr.get("next_clicked"):
     st.rerun()
     
 # === STRISCIA DATI – ANNO (riuso del renderer MESE per allineamento pixel-perfect) ===
+# === STRISCIA DATI – ANNO (riuso renderer MESE) ===
 kpi_year, deltas_year = _compute_year_kpis(df_view, active_y)
 render_month_kpis_1547(kpi_year, deltas_year)
-
-with c2:
-    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-    st.markdown('<div class="kpi-label">Occupazione anno</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="kpi-value">{kpi_year["Occupazione anno"]}</div>{_pill_html("Occupazione anno", delta_year_raw["Occupazione anno"])}', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with c3:
-    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-    st.markdown('<div class="kpi-label">Notti vendute anno</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="kpi-value">{kpi_year["Notti vendute anno"]}</div>{_pill_html("Notti vendute anno", delta_year_raw["Notti vendute anno"])}', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with c4:
-    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-    st.markdown('<div class="kpi-label">ADR medio anno</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="kpi-value">{kpi_year["ADR medio anno"]}</div>{_pill_html("ADR medio anno", delta_year_raw["ADR medio anno"])}', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-with c5:
-    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-    st.markdown('<div class="kpi-label">RevPAR medio anno</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="kpi-value">{kpi_year["RevPAR medio anno"]}</div>{_pill_html("RevPAR medio anno", delta_year_raw["RevPAR medio anno"])}', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-st.markdown('</div>', unsafe_allow_html=True)
-# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
 hdr = render_month_header_1547(
     month_label=curr_label,
     prev_month_label=prev_label,
