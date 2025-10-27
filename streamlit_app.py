@@ -301,7 +301,7 @@ def render_month_header_1547(month_label: str, prev_month_label: str, next_month
         st.markdown(
         f'''
         <div class="mh-center" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:110px;">
-        <p class="mh-month">{month_label}</p>
+        <p class="mh-month" style="font-size:28px; line-height:1.1; font-weight:700;">{month_label}</p>
         <div class="mh-sub">(anno di comparazione: {compare_year})</div>
         </div>
         ''',
