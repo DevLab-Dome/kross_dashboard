@@ -8,8 +8,6 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-# NOTE: rimosse import inutilizzate per la sezione ANNO
-from modules.ui_header import render_header_bar  # , render_year_bar, render_year_nav
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
@@ -42,12 +40,11 @@ div.stButton>button{
     border-radius: 8px; border:1px solid #cbd5e1;
     background:#fff !important; color: var(--dl-fg) !important; font-weight: 600;
     transition: border-color .12s ease, box-shadow .12s ease;
-    white-space: nowrap; min-width: 96px;      /* ← niente testo spezzato */
+    white-space: nowrap; min-width: 96px;
 }
 div.stButton>button:hover{ border-color: var(--dl-accent); box-shadow:0 0 0 3px var(--dl-ring); }
 div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
 
-/* chip attivo/disabilitato */
 div.stButton > button:disabled{
     background: var(--dl-chip-bg) !important; color: var(--dl-chip-fg) !important;
     border-color: #cbd5e1 !important; font-weight: 700 !important;
@@ -87,9 +84,7 @@ st.sidebar.header("Carica i dati")
 prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
 year_sel = st.sidebar.selectbox("Anno", options=YEARS, index=YEARS.index(today.year) if today.year in YEARS else 0)
 
-upl = st.sidebar.file_uploader(
-    f"File {prop_sel} – {year_sel}", type=["xlsx"], key=f"uploader_{prop_sel}_{year_sel}"
-)
+upl = st.sidebar.file_uploader(f"File {prop_sel} – {year_sel}", type=["xlsx"], key=f"uploader_{prop_sel}_{year_sel}")
 col_sb_a, col_sb_b = st.sidebar.columns(2)
 with col_sb_a:
     if st.button("Carica file selezionato", use_container_width=True):
@@ -172,7 +167,7 @@ active_m = st.session_state["active_month"]
 curr_label, prev_label, next_label = _month_labels(active_y, active_m)
 
 # -----------------------------------------------------------------------------
-# KPI MESE per header (solo formattazioni minime per coerenza)
+# KPI MESE per header
 # -----------------------------------------------------------------------------
 def _fmt_eur(x: float) -> str:
     s = f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -185,18 +180,20 @@ def _fmt_th(n: int) -> str:
 
 df_cur = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
 df_prev = df_view[(df_view["year"] == active_y - 1) & (df_view["month"] == active_m)].copy()
-sold_nights = int(df_cur.get("occupied", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0
-rooms_avail = float(df_cur.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
-revenue     = float(df_cur.get("revenue", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
-occ_pct     = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
-adr         = float(df_cur.get("adr", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
-revpar      = float(df_cur.get("revpar", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
-sold_nights_py = int(df_prev.get("occupied", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0
-rooms_avail_py = float(df_prev.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
-revenue_py     = float(df_prev.get("revenue", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
-occ_pct_py     = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
-adr_py         = float(df_prev.get("adr", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
-revpar_py      = float(df_prev.get("revpar", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
+
+sold_nights   = int(df_cur.get("occupied", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0
+rooms_avail   = float(df_cur.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
+revenue       = float(df_cur.get("revenue", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
+occ_pct       = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
+adr           = float(df_cur.get("adr", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
+revpar        = float(df_cur.get("revpar", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
+
+sold_nights_py= int(df_prev.get("occupied", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0
+rooms_avail_py= float(df_prev.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
+revenue_py    = float(df_prev.get("revenue", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
+occ_pct_py    = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
+adr_py        = float(df_prev.get("adr", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
+revpar_py     = float(df_prev.get("revpar", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
 
 kpi_header = {
     "Revenue": _fmt_eur(revenue),
@@ -214,22 +211,20 @@ deltas_header = {
 }
 
 # -----------------------------------------------------------------------------
-# STRISCIA MESE – layout identico allo screenshot 15:47 (spazi ridotti)
+# STRISCIA MESE – Navigazione (layout screenshot 15:47)
 # -----------------------------------------------------------------------------
 def render_month_header_1547(month_label: str, prev_month_label: str, next_month_label: str, compare_year: int):
     st.markdown("""
 <style>
-.mh-wrap{margin-top:6px;}
-.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;} /* prima: 8px */
+.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;}
 .mh-center{text-align:center;margin-top:2px;}
 .mh-month{font-weight:700;font-size:22px;margin:0;}
 .mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
-/* Bottoni freccia come "input" con bordo */
-div.mh-btn{ margin-bottom:2px; }   /* riduce gap sotto il bottone */
+div.mh-btn{ margin-bottom:2px; }
 div.mh-btn > button{
     border:1px solid #e5e7eb !important; border-radius:10px !important;
     background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
-    min-height:44px; min-width:120px; margin-bottom:0 !important; /* evita extra-gap */
+    min-height:44px; min-width:120px; margin-bottom:0 !important;
 }
 div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important; }
 </style>
@@ -255,39 +250,21 @@ div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px
 
     st.divider()
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
+
 # -----------------------------------------------------------------------------
-# MESE_DATI – KPI identici allo screenshot 15:47
-# Allineamenti richiesti:
-# - "Revenue mese" centrato sotto il pulsante SINISTRO
-# - "Notti vendute" centrato sotto il MESE al centro
-# - "RevPAR medio" centrato sotto il pulsante DESTRO
+# STRISCIA MESE – KPI (allineamento su 5 ancoraggi)
 # -----------------------------------------------------------------------------
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
-    # --- STILI ---
     st.markdown("""
 <style>
-.kpi-section{ width:100%; }
-.kpi-wrap{ margin-top:10px; }
-.kpi-card{ text-align:left; }
 .kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; }
-.kpi-value{
-    font-size:36px; font-weight:700; color:#111827; line-height:1.15;
-    white-space:nowrap;
-}
-.kpi-pill{
-    display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
-    font-size:13px; font-weight:600; margin-top:8px;
-}
+.kpi-value{ font-size:36px; font-weight:700; color:#111827; line-height:1.15; white-space:nowrap; }
+.kpi-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+           font-size:13px; font-weight:600; margin-top:8px; }
 .kpi-pill.up{ background:#ecfdf5; color:#16a34a; }
 .kpi-pill.down{ background:#fef2f2; color:#dc2626; }
 </style>
 """, unsafe_allow_html=True)
-
-    # --- CONTENITORE a tutta larghezza + colonne come la navigazione (2,3,2) ---
-    st.markdown('<div class="kpi-section">', unsafe_allow_html=True)
-        # --- 5 ancoraggi orizzontali allineati alla barra di navigazione ---
-    # [2,1,3,1,2]  ->  SX btn | midpoint | MESE | midpoint | DX btn
-    col_rev, col_occ, col_notti, col_adr, col_rpar = st.columns([2,1,3,1,2], gap="large")
 
     def pill_html(delta: float) -> str:
         if delta is None: return ""
@@ -296,83 +273,44 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
         val = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    # 1) Revenue mese — centrato sotto il pulsante sinistro
+    # 5 ancoraggi orizzontali: SX | midpoint | MESE | midpoint | DX
+    col_rev, col_occ, col_notti, col_adr, col_rpar = st.columns([2,1,3,1,2], gap="large")
+
     with col_rev:
-        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 2) Occupazione — centrata tra Revenue e Notti
     with col_occ:
-        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 3) Notti vendute — centrata sotto il mese
     with col_notti:
-        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 4) ADR medio — centrato tra Notti e RevPAR
     with col_adr:
-        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 5) RevPAR medio — centrato sotto il pulsante destro
     with col_rpar:
-        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown('</div>', unsafe_allow_html=True)
-        with c2:  # Occupazione (a destra del Revenue)
-            st.markdown('<div class="kpi-card" style="text-align:left;">', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>'
-                f'{pill_html(deltas.get("Occupazione"))}',
-                unsafe_allow_html=True
-            )
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- CENTRO: Notti vendute perfettamente centrato sotto il mese, ADR a destra ---
-    with zone_center:
-        # Tre colonne interne: [spacer] [Notti vendute] [ADR]
-        c_sp, c_mid, c_adr = st.columns([1, 1, 1], gap="large")
-
-        with c_mid:  # ← esattamente al centro della zona
-            st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with c_adr:  # ADR medio sulla destra della zona centrale
-            st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    # --- DESTRA: RevPAR medio centrato sotto il pulsante DX ---
-    with zone_right:
-        # leggero sbilanciamento verso destra (speculare alla sinistra)
-        r1, r2 = st.columns([0.85, 1.15], gap="large")
-        with r2:
-            st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)  # chiude kpi-section
     st.divider()
 
-# --- usa il nuovo header mese ---
+# -----------------------------------------------------------------------------
+# RENDER PAGINA
+# -----------------------------------------------------------------------------
 hdr = render_month_header_1547(
     month_label=curr_label,
     prev_month_label=prev_label,
@@ -382,7 +320,6 @@ hdr = render_month_header_1547(
 if hdr.get("prev_clicked"): go_prev(); st.rerun()
 if hdr.get("next_clicked"): go_next(); st.rerun()
 
-# --- render della striscia ---
 render_month_kpis_1547(kpi_header, deltas_header)
 
 # -----------------------------------------------------------------------------
