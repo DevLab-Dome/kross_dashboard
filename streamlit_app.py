@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import io, os, calendar
+import io, os
 from datetime import datetime
 
 import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 from modules.data_loader import load_config, normalize_wide_excel
@@ -24,16 +23,6 @@ def inject_base_styles():
     --dl-chip-bg:#f8fafc; --dl-chip-fg:#0f172a;
 }
 .dl-root, .dl-root *{ font-family: var(--dl-font); letter-spacing: .2px; }
-.dl-strip{
-    display:flex; align-items:center; gap: var(--dl-gap);
-    background: var(--dl-bg); border:1px solid #e5e7eb; border-radius: var(--dl-radius);
-    padding: 8px 10px; margin: 6px 0;
-}
-.dl-title{
-    font-weight:600; color:var(--dl-fg); white-space:nowrap;
-    padding-right:8px; border-right:1px solid #e5e7eb;
-}
-.dl-actions{ display:flex; gap:6px; flex-wrap:wrap; }
 
 div.stButton>button{
     padding: var(--dl-pad);
@@ -44,12 +33,35 @@ div.stButton>button{
 }
 div.stButton>button:hover{ border-color: var(--dl-accent); box-shadow:0 0 0 3px var(--dl-ring); }
 div.stButton>button:focus{ outline:none; box-shadow:0 0 0 3px var(--dl-ring); }
-
-div.stButton > button:disabled{
+div.stButton>button:disabled{
     background: var(--dl-chip-bg) !important; color: var(--dl-chip-fg) !important;
     border-color: #cbd5e1 !important; font-weight: 700 !important;
     cursor: default !important; opacity: 1 !important; box-shadow: none !important;
 }
+
+/* Header mese */
+.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;}
+.mh-center{text-align:center;margin-top:2px;}
+.mh-month{font-weight:700;font-size:22px;margin:0;}
+.mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
+div.mh-btn{ margin-bottom:2px; }
+div.mh-btn > button{
+  border:1px solid #e5e7eb !important; border-radius:10px !important;
+  background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
+  min-height:44px; min-width:120px; margin-bottom:0 !important;
+}
+div.mh-btn > button:hover{
+  border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important;
+}
+
+/* KPI mese */
+.kpi-col{ width:100%; display:flex; flex-direction:column; align-items:center; }
+.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; white-space:nowrap; }
+.kpi-value{ font-size:36px; font-weight:700; color:#111827; line-height:1.15; white-space:nowrap; }
+.kpi-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+           font-size:13px; font-weight:600; margin-top:8px; }
+.kpi-pill.up{ background:#ecfdf5; color:#16a34a; }
+.kpi-pill.down{ background:#fef2f2; color:#dc2626; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -66,8 +78,6 @@ st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 # -----------------------------------------------------------------------------
 CFG = load_config("config.yaml")
 CURRENCY = CFG.get("currency_symbol", "€")
-ROOMS_DEFAULT = int(CFG.get("rooms_default", 5))
-ROOMS_MAP: dict = CFG.get("rooms_per_property", {})
 
 today = datetime.now()
 st.session_state.setdefault("active_year", today.year)
@@ -167,7 +177,7 @@ active_m = st.session_state["active_month"]
 curr_label, prev_label, next_label = _month_labels(active_y, active_m)
 
 # -----------------------------------------------------------------------------
-# KPI MESE per header
+# KPI MESE (formattazioni)
 # -----------------------------------------------------------------------------
 def _fmt_eur(x: float) -> str:
     s = f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -178,22 +188,22 @@ def _fmt_pct(x: float) -> str:
 def _fmt_th(n: int) -> str:
     return f"{n:,}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-df_cur = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
+df_cur  = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
 df_prev = df_view[(df_view["year"] == active_y - 1) & (df_view["month"] == active_m)].copy()
 
-sold_nights   = int(df_cur.get("occupied", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0
-rooms_avail   = float(df_cur.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
-revenue       = float(df_cur.get("revenue", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
-occ_pct       = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
-adr           = float(df_cur.get("adr", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
-revpar        = float(df_cur.get("revpar", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
+sold_nights    = int(df_cur.get("occupied", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0
+rooms_avail    = float(df_cur.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
+revenue        = float(df_cur.get("revenue", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
+occ_pct        = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
+adr            = float(df_cur.get("adr", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
+revpar         = float(df_cur.get("revpar", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
 
-sold_nights_py= int(df_prev.get("occupied", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0
-rooms_avail_py= float(df_prev.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
-revenue_py    = float(df_prev.get("revenue", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
-occ_pct_py    = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
-adr_py        = float(df_prev.get("adr", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
-revpar_py     = float(df_prev.get("revpar", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
+sold_nights_py = int(df_prev.get("occupied", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0
+rooms_avail_py = float(df_prev.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
+revenue_py     = float(df_prev.get("revenue", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
+occ_pct_py     = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
+adr_py         = float(df_prev.get("adr", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
+revpar_py      = float(df_prev.get("revpar", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
 
 kpi_header = {
     "Revenue": _fmt_eur(revenue),
@@ -211,31 +221,17 @@ deltas_header = {
 }
 
 # -----------------------------------------------------------------------------
-# STRISCIA MESE – Navigazione (layout screenshot 15:47)
+# GRIGLIA 5 COLONNE COERENTE (riutilizzata da header e KPI)
+# -----------------------------------------------------------------------------
+def _five_slots():
+    """Unica griglia condivisa: [2,1,3,1,2] con gap large. Garantisce allineamento 1:1 tra righe."""
+    return st.columns([2, 1, 3, 1, 2], gap="large")
+
+# -----------------------------------------------------------------------------
+# STRISCIA MESE – Navigazione (5 colonne)
 # -----------------------------------------------------------------------------
 def render_month_header_1547(month_label: str, prev_month_label: str, next_month_label: str, compare_year: int):
-    # NAV MESE su 5 colonne fisse: [2, 1, 3, 1, 2]
-    st.markdown("""
-<style>
-.row5{display:grid; grid-template-columns:2fr 1fr 3fr 1fr 2fr; gap: var(--dl-gap);}
-.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;}
-.mh-center{text-align:center;margin-top:2px;}
-.mh-month{font-weight:700;font-size:22px;margin:0;}
-.mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
-div.mh-btn{ margin-bottom:2px; }
-div.mh-btn > button{
-  border:1px solid #e5e7eb !important; border-radius:10px !important;
-  background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
-  min-height:44px; min-width:120px; margin-bottom:0 !important;
-}
-div.mh-btn > button:hover{
-  border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-    # Griglia a 5 colonne: c1 (SX) | c2 (vuota) | c3 (MESE) | c4 (vuota) | c5 (DX)
-    c1, c2, c3, c4, c5 = st.columns([2,1,3,1,2], gap="large")
+    c1, c2, c3, c4, c5 = _five_slots()
 
     with c1:  # pulsante sinistro + label mese precedente
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
@@ -243,16 +239,12 @@ div.mh-btn > button:hover{
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under">{prev_month_label}</div>', unsafe_allow_html=True)
 
-    # c2: INTENZIONALMENTE VUOTA (spacer)
-
     with c3:  # mese corrente al centro + testo comparazione
         st.markdown(
             f'<div class="mh-center"><p class="mh-month">{month_label}</p>'
             f'<div class="mh-sub">(anno di comparazione: {compare_year})</div></div>',
             unsafe_allow_html=True
         )
-
-    # c4: INTENZIONALMENTE VUOTA (spacer)
 
     with c5:  # pulsante destro + label mese successivo
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
@@ -264,70 +256,50 @@ div.mh-btn > button:hover{
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # -----------------------------------------------------------------------------
-# STRISCIA MESE – KPI (allineamento su 5 ancoraggi)
+# STRISCIA MESE – KPI (5 colonne allineate all’header)
 # -----------------------------------------------------------------------------
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
-    # Stili coerenti e centratura rigida
-    st.markdown("""
-<style>
-.kpi-col{ width:100%; display:flex; flex-direction:column; align-items:center; }
-.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; white-space:nowrap; }
-.kpi-value{ font-size:36px; font-weight:700; color:#111827; line-height:1.15; white-space:nowrap; }
-.kpi-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
-           font-size:13px; font-weight:600; margin-top:8px; }
-.kpi-pill.up{ background:#ecfdf5; color:#16a34a; }
-.kpi-pill.down{ background:#fef2f2; color:#dc2626; }
-</style>
-""", unsafe_allow_html=True)
-
     def pill(delta: float) -> str:
-        if delta is None:
-            return ""
+        if delta is None: return ""
         cls  = "up" if delta >= 0 else "down"
         icon = "↑" if delta >= 0 else "↓"
         val  = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    # 5 colonne IDENTICHE all’header: [2, 1, 3, 1, 2]
-    col_rev, col_occ, col_notti, col_adr, col_rpar = st.columns([2, 1, 3, 1, 2], gap="large")
+    col_rev, col_occ, col_notti, col_adr, col_rpar = _five_slots()
 
-    # 1) Revenue (sotto pulsante SX)
-    with col_rev:
+    with col_rev:   # sotto pulsante SX
         st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill(deltas.get("Revenue"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 2) Occupazione (punto intermedio sinistro)
-    with col_occ:
+    with col_occ:   # punto intermedio sinistro
         st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill(deltas.get("Occupazione"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 3) Notti vendute (sotto mese al centro)
-    with col_notti:
+    with col_notti: # centro (sotto mese corrente)
         st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 4) ADR (punto intermedio destro)
-    with col_adr:
+    with col_adr:   # punto intermedio destro
         st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill(deltas.get("ADR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-    # 5) RevPAR (sotto pulsante DX)
-    with col_rpar:
+    with col_rpar:  # sotto pulsante DX
         st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill(deltas.get("RevPAR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.divider()
-    
+
 # -----------------------------------------------------------------------------
 # RENDER PAGINA
 # -----------------------------------------------------------------------------
@@ -343,5 +315,5 @@ if hdr.get("next_clicked"): go_next(); st.rerun()
 render_month_kpis_1547(kpi_header, deltas_header)
 
 # -----------------------------------------------------------------------------
-# (segue tutto il resto della pagina: KPI mensili, tabelle, grafici...)
+# (segue tutto il resto della pagina: KPI mensili, tabelle, grafici…)
 # -----------------------------------------------------------------------------
