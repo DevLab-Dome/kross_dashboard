@@ -263,24 +263,29 @@ div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px
 # - "RevPAR medio" centrato sotto il pulsante DESTRO
 # -----------------------------------------------------------------------------
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
+    # --- STILI ---
     st.markdown("""
 <style>
+.kpi-section{ width:100%; }
 .kpi-wrap{ margin-top:10px; }
 .kpi-card{ text-align:left; }
-.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; }   /* etichette più piccole e grigie */
+.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; }
 .kpi-value{
     font-size:36px; font-weight:700; color:#111827; line-height:1.15;
-    white-space:nowrap;                                   /* evita mandata a capo (€ 16.150,93) */
+    white-space:nowrap;
 }
 .kpi-pill{
     display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
     font-size:13px; font-weight:600; margin-top:8px;
 }
-.kpi-pill.up{ background:#ecfdf5; color:#16a34a; }        /* verde */
-.kpi-pill.down{ background:#fef2f2; color:#dc2626; }      /* rosso */
-.kpi-muted{ color:#6b7280; font-size:13px; margin-left:6px; }
+.kpi-pill.up{ background:#ecfdf5; color:#16a34a; }
+.kpi-pill.down{ background:#fef2f2; color:#dc2626; }
 </style>
 """, unsafe_allow_html=True)
+
+    # --- CONTENITORE a tutta larghezza + colonne come la navigazione (2,3,2) ---
+    st.markdown('<div class="kpi-section">', unsafe_allow_html=True)
+    zone_left, zone_center, zone_right = st.columns([2,3,2], gap="large")
 
     def pill_html(delta: float) -> str:
         if delta is None: return ""
@@ -289,47 +294,43 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
         val = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    # ZONE con st.columns per centrare sotto i 3 elementi della navigazione (2,3,2)
-    zone_left, zone_center, zone_right = st.columns([2,3,2], gap="large")
-
-    # --- ZONA SINISTRA: 2 KPI (Revenue mese centrato sotto freccia SX, poi Occupazione) ---
+    # --- SINISTRA: Revenue mese (centrato) + Occupazione ---
     with zone_left:
         c1, c2 = st.columns([1,1], gap="large")
-        with c1:  # Revenue mese centrato rispetto al pulsante SX
-            st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+        with c1:
+            st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        with c2:  # Occupazione (a destra del Revenue)
+        with c2:
             st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- ZONA CENTRALE: 2 KPI (Notti vendute centrato sotto il MESE, poi ADR medio) ---
+    # --- CENTRO: Notti vendute (centrato) + ADR medio ---
     with zone_center:
         c3, c4 = st.columns([1,1], gap="large")
-        with c3:  # Notti vendute centrato rispetto al titolo mese
+        with c3:
             st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
-        with c4:  # ADR medio (a destra di Notti)
+        with c4:
             st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-    # --- ZONA DESTRA: 1 KPI (RevPAR medio centrato sotto il pulsante DX) ---
+    # --- DESTRA: RevPAR medio (centrato) ---
     with zone_right:
         st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
         st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
+    st.markdown('</div>', unsafe_allow_html=True)  # chiude kpi-section
     st.divider()
-
-
 
 # --- usa il nuovo header mese ---
 hdr = render_month_header_1547(
