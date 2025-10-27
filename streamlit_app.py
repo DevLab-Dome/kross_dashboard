@@ -265,17 +265,20 @@ div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
     st.markdown("""
 <style>
-.kpi-wrap{ margin-top:14px; }
+.kpi-wrap{ margin-top:10px; }
 .kpi-card{ text-align:left; }
-.kpi-label{ font-size:16px; color:#374151; margin-bottom:6px; }
-.kpi-value{ font-size:44px; font-weight:700; color:#111827; line-height:1.0; }
+.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; }   /* etichette più piccole e grigie */
+.kpi-value{
+    font-size:36px; font-weight:700; color:#111827; line-height:1.15;
+    white-space:nowrap;                                   /* evita mandata a capo (€ 16.150,93) */
+}
 .kpi-pill{
-    display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px;
-    font-size:14px; font-weight:600; margin-top:8px;
+    display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+    font-size:13px; font-weight:600; margin-top:8px;
 }
 .kpi-pill.up{ background:#ecfdf5; color:#16a34a; }        /* verde */
 .kpi-pill.down{ background:#fef2f2; color:#dc2626; }      /* rosso */
-.kpi-muted{ color:#6b7280; font-size:14px; margin-left:6px; }
+.kpi-muted{ color:#6b7280; font-size:13px; margin-left:6px; }
 </style>
 """, unsafe_allow_html=True)
 
