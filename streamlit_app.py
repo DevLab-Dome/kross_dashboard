@@ -285,7 +285,9 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
 
     # --- CONTENITORE a tutta larghezza + colonne come la navigazione (2,3,2) ---
     st.markdown('<div class="kpi-section">', unsafe_allow_html=True)
-    zone_left, zone_center, zone_right = st.columns([2,3,2], gap="large")
+        # --- 5 ancoraggi orizzontali allineati alla barra di navigazione ---
+    # [2,1,3,1,2]  ->  SX btn | midpoint | MESE | midpoint | DX btn
+    col_rev, col_occ, col_notti, col_adr, col_rpar = st.columns([2,1,3,1,2], gap="large")
 
     def pill_html(delta: float) -> str:
         if delta is None: return ""
@@ -294,18 +296,41 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
         val = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    # --- ZONA SINISTRA: Revenue mese centrato sotto il pulsante SX, Occupazione accanto ---
-    with zone_left:
-        # leggero sbilanciamento verso sinistra per centrare esattamente sotto il pulsante
-        c1, c2 = st.columns([1.15, 0.85], gap="large")
-        with c1:  # Revenue mese (centrato)
-            st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
-            st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="kpi-value" style="white-space:nowrap;">{kpi.get("Revenue","–")}</div>'
-                f'{pill_html(deltas.get("Revenue"))}',
-                unsafe_allow_html=True
-            )
+    # 1) Revenue mese — centrato sotto il pulsante sinistro
+    with col_rev:
+        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 2) Occupazione — centrata tra Revenue e Notti
+    with col_occ:
+        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 3) Notti vendute — centrata sotto il mese
+    with col_notti:
+        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 4) ADR medio — centrato tra Notti e RevPAR
+    with col_adr:
+        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 5) RevPAR medio — centrato sotto il pulsante destro
+    with col_rpar:
+        st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
+        st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
             st.markdown('</div>', unsafe_allow_html=True)
         with c2:  # Occupazione (a destra del Revenue)
             st.markdown('<div class="kpi-card" style="text-align:left;">', unsafe_allow_html=True)
