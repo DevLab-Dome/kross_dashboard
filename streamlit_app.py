@@ -326,8 +326,6 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
 
     st.divider()
 
-# --- render della striscia ---
-render_month_kpis_1547(kpi_header, deltas_header)
 
 
 # --- usa il nuovo header mese ---
@@ -339,6 +337,9 @@ hdr = render_month_header_1547(
 )
 if hdr.get("prev_clicked"): go_prev(); st.rerun()
 if hdr.get("next_clicked"): go_next(); st.rerun()
+
+# --- render della striscia ---
+render_month_kpis_1547(kpi_header, deltas_header)
 
 # -----------------------------------------------------------------------------
 # (segue tutto il resto della pagina: KPI mensili, tabelle, grafici...)
