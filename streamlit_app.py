@@ -294,18 +294,27 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
         val = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    # --- SINISTRA: Revenue mese (centrato) + Occupazione ---
+        # --- ZONA SINISTRA: Revenue mese centrato sotto il pulsante SX, Occupazione accanto ---
     with zone_left:
-        c1, c2 = st.columns([1,1], gap="large")
-        with c1:
+        # leggero sbilanciamento verso sinistra per centrare esattamente sotto il pulsante
+        c1, c2 = st.columns([1.15, 0.85], gap="large")
+        with c1:  # Revenue mese (centrato)
             st.markdown('<div class="kpi-card" style="text-align:center;">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="kpi-value" style="white-space:nowrap;">{kpi.get("Revenue","–")}</div>'
+                f'{pill_html(deltas.get("Revenue"))}',
+                unsafe_allow_html=True
+            )
             st.markdown('</div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+        with c2:  # Occupazione (a destra del Revenue)
+            st.markdown('<div class="kpi-card" style="text-align:left;">', unsafe_allow_html=True)
             st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
-            st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>'
+                f'{pill_html(deltas.get("Occupazione"))}',
+                unsafe_allow_html=True
+            )
             st.markdown('</div>', unsafe_allow_html=True)
 
     # --- CENTRO: Notti vendute (centrato) + ADR medio ---
