@@ -624,7 +624,6 @@ if yhdr.get("next_clicked"):
 # === STRISCIA DATI – ANNO (riuso renderer MESE) ===
 kpi_year, deltas_year = _compute_year_kpis(df_view, active_y)
 render_month_kpis_1547(kpi_year, deltas_year)
-st.divider()
 hdr = render_month_header_1547(
     month_label=curr_label,
     prev_month_label=prev_label,
