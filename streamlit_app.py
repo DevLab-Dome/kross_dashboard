@@ -286,6 +286,32 @@ def _five_slots():
     return st.columns([2, 1, 3, 1, 2], gap="large")
 
 def render_year_header_1547(year_label: int):
+    """
+    Header ANNO: titolo centrato e pulsanti SX/DX.
+    Ritorna: {"prev_clicked": bool, "next_clicked": bool}
+    """
+    col_l, col_c, col_r = st.columns([1,3,1])
+    with col_l:
+        prev_clicked = st.button("◀", key="year_prev_btn", use_container_width=True)
+    with col_c:
+        st.markdown(
+            f"""
+            <div style="text-align:center; line-height:1.05;">
+                <div style="font-size:22px; font-weight:700; color:#065f46;">
+                    Anno {year_label}
+                </div>
+                <div style="font-size:14px; font-weight:600; color:#065f46;">
+                    (anno di comparazione: {year_label-1})
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col_r:
+        next_clicked = st.button("▶", key="year_next_btn", use_container_width=True)
+
+    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
+
     # -----------------------------------------------------------------------------
 # STRISCIA ANNO – KPI (stessa grafica/struttura della striscia MESE)
 # -----------------------------------------------------------------------------
