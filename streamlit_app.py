@@ -525,7 +525,6 @@ def render_month_header_1547(month_label: str, prev_month_label: str, next_month
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under" style="color:#166534; font-weight:700;">{next_month_label}</div>', unsafe_allow_html=True)
 
-    st.divider()
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # -----------------------------------------------------------------------------
