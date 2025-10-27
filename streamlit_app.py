@@ -299,7 +299,7 @@ def render_year_header_1547(year_label: int):
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
         prev_clicked = st.button("◀", key="yh_prev", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="mh-under">{prev_year}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{prev_year}</div>', unsafe_allow_html=True)
 
     with c3:  # titolo centrale su due righe (come mese)
         st.markdown(
@@ -316,7 +316,7 @@ def render_year_header_1547(year_label: int):
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
         next_clicked = st.button("▶", key="yh_next", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="mh-under">{next_year}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{next_year}</div>', unsafe_allow_html=True)
 
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
