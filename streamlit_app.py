@@ -735,35 +735,35 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Contenitore a tutta larghezza + 5 colonne ancorate ai tre pivot (SX | CENTRO | DX)
-st.markdown('<div class="dl-strip">', unsafe_allow_html=True)
-col_rev, col_occ, col_nights, col_adr, col_rpar = st.columns([2,1,3,1,2], gap="large")
+# --- Renderer UI (ANNO) allineato 1:1 alla striscia MESE ---
+c1, c2, c3, c4, c5 = _five_slots()  # stessa griglia [2,1,3,1,2] della sezione mese
 
-with col_rev:
-    st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+with c1:
+    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
     st.markdown('<div class="kpi-label">Revenue anno</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="kpi-value">{kpi_year["Revenue anno"]}</div>{_pill_html("Revenue anno", delta_year_raw["Revenue anno"])}', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col_occ:
-    st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+with c2:
+    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
     st.markdown('<div class="kpi-label">Occupazione anno</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="kpi-value">{kpi_year["Occupazione anno"]}</div>{_pill_html("Occupazione anno", delta_year_raw["Occupazione anno"])}', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col_nights:
-    st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+with c3:
+    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
     st.markdown('<div class="kpi-label">Notti vendute anno</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="kpi-value">{kpi_year["Notti vendute anno"]}</div>{_pill_html("Notti vendute anno", delta_year_raw["Notti vendute anno"])}', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col_adr:
-    st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+with c4:
+    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
     st.markdown('<div class="kpi-label">ADR medio anno</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="kpi-value">{kpi_year["ADR medio anno"]}</div>{_pill_html("ADR medio anno", delta_year_raw["ADR medio anno"])}', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-with col_rpar:
-    st.markdown('<div class="kpi-card">', unsafe_allow_html=True)
+with c5:
+    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
     st.markdown('<div class="kpi-label">RevPAR medio anno</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="kpi-value">{kpi_year["RevPAR medio anno"]}</div>{_pill_html("RevPAR medio anno", delta_year_raw["RevPAR medio anno"])}', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
