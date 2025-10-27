@@ -265,7 +265,8 @@ div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
     st.markdown("""
 <style>
-.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; }
+.kpi-col{ display:flex; flex-direction:column; align-items:center; }
+.kpi-label{ font-size:14px; color:#6b7280; margin-bottom:6px; white-space:nowrap; }
 .kpi-value{ font-size:36px; font-weight:700; color:#111827; line-height:1.15; white-space:nowrap; }
 .kpi-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
            font-size:13px; font-weight:600; margin-top:8px; }
@@ -273,7 +274,7 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
 .kpi-pill.down{ background:#fef2f2; color:#dc2626; }
 </style>
 """, unsafe_allow_html=True)
-
+    
     def pill_html(delta: float) -> str:
         if delta is None: return ""
         cls = "up" if delta >= 0 else "down"
