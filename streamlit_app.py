@@ -285,6 +285,19 @@ def _five_slots():
     """Unica griglia condivisa: [2,1,3,1,2] con gap large. Garantisce allineamento 1:1 tra righe."""
     return st.columns([2, 1, 3, 1, 2], gap="large")
 
+# === NAVIGAZIONE ANNO (prima della sezione mese) ===
+yhdr = render_year_header_1547(active_y)
+
+# Cambio anno: aggiorna anche il mese alla mensilità corrente del calendario, mantenendo lo stesso anno interrogato
+if yhdr.get("prev_clicked"):
+    st.session_state["active_year"] = active_y - 1
+    st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
+    st.rerun()
+if yhdr.get("next_clicked"):
+    st.session_state["active_year"] = active_y + 1
+    st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
+    st.rerun()
+
 # -----------------------------------------------------------------------------
 # STRISCIA MESE – Navigazione (5 colonne)
 # -----------------------------------------------------------------------------
