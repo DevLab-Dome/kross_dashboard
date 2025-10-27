@@ -214,27 +214,58 @@ deltas_header = {
 }
 
 # -----------------------------------------------------------------------------
-# STRISCIA MESE (rimane invariata)
+# STRISCIA MESE – layout identico allo screenshot 15:47
 # -----------------------------------------------------------------------------
-st.markdown('<div class="dl-strip">', unsafe_allow_html=True)
-cM1, cM2 = st.columns([1, 5])
-with cM1:
-    st.markdown('<span class="dl-title">MESE</span>', unsafe_allow_html=True)
-with cM2:
-    st.markdown('<div class="dl-actions">', unsafe_allow_html=True)
-    res = render_header_bar(
-        month_label=curr_label,
-        prev_month_label=prev_label,
-        next_month_label=next_label,
-        kpi=kpi_header, deltas=deltas_header,
-        key_prefix="hdr_main",
-        show_kpis=False,               # solo pulsanti + label
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
-st.markdown('</div>', unsafe_allow_html=True)
+def render_month_header_1547(month_label: str, prev_month_label: str, next_month_label: str, compare_year: int):
+    # CSS dedicato al solo header mese (stile screenshot 15:47)
+    st.markdown("""
+<style>
+.mh-wrap{margin-top:6px;}
+.mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:8px;}
+.mh-center{text-align:center;margin-top:2px;}
+.mh-month{font-weight:700;font-size:22px;margin:0;}
+.mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
+/* Bottoni freccia come "input" con bordo */
+div.mh-btn > button{
+    border:1px solid #e5e7eb !important; border-radius:10px !important;
+    background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
+    min-height:44px; min-width:120px;
+}
+div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important; }
+</style>
+""", unsafe_allow_html=True)
 
-if res.get("prev_clicked"): go_prev(); st.rerun()
-if res.get("next_clicked"): go_next(); st.rerun()
+    # Tre colonne: freccia sx + label mese (con sotto comparazione) + freccia dx
+    col_l, col_c, col_r = st.columns([2,3,2], gap="large")
+    with col_l:
+        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
+        prev_clicked = st.button("◀", key="mh_prev", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under">{prev_month_label}</div>', unsafe_allow_html=True)
+    with col_c:
+        st.markdown(
+            f'<div class="mh-center"><p class="mh-month">{month_label}</p>'
+            f'<div class="mh-sub">(anno di comparazione: {compare_year})</div></div>',
+            unsafe_allow_html=True
+        )
+    with col_r:
+        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
+        next_clicked = st.button("▶", key="mh_next", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under">{next_month_label}</div>', unsafe_allow_html=True)
+
+    st.divider()
+    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
+
+# --- usa il nuovo header mese ---
+hdr = render_month_header_1547(
+    month_label=curr_label,
+    prev_month_label=prev_label,
+    next_month_label=next_label,
+    compare_year=active_y - 1
+)
+if hdr.get("prev_clicked"): go_prev(); st.rerun()
+if hdr.get("next_clicked"): go_next(); st.rerun()
 
 # -----------------------------------------------------------------------------
 # (segue tutto il resto della pagina: KPI mensili, tabelle, grafici...)
