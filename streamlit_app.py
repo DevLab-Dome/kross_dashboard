@@ -298,6 +298,43 @@ if yhdr.get("next_clicked"):
     st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
     st.rerun()
 
+def render_year_header_1547(year_label: int):
+    """Navigazione ANNO su 5 colonne, identica alla barra mese."""
+    prev_year = year_label - 1
+    next_year = year_label + 1
+
+    # usa la stessa griglia condivisa
+    c1, c2, c3, c4, c5 = _five_slots()
+
+    # SX: pulsante + label anno precedente (verde scuro bold)
+    with c1:
+        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
+        prev_clicked = st.button("◀", key="yh_prev", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{prev_year}</div>', unsafe_allow_html=True)
+
+    # CENTRO: anno corrente (grande, centrato anche verticalmente)
+    with c3:
+        st.markdown(
+            f'''
+<div class="mh-center" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:110px;">
+  <p class="mh-month" style="font-size:28px; line-height:1.1; font-weight:700;">{year_label}</p>
+  <div class="mh-sub">Sezione ANNO</div>
+</div>
+''',
+            unsafe_allow_html=True
+        )
+
+    # DX: pulsante + label anno successivo (verde scuro bold)
+    with c5:
+        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
+        next_clicked = st.button("▶", key="yh_next", use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{next_year}</div>', unsafe_allow_html=True)
+
+    st.divider()
+    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
+
 # -----------------------------------------------------------------------------
 # STRISCIA MESE – Navigazione (5 colonne)
 # -----------------------------------------------------------------------------
