@@ -617,7 +617,6 @@ if yhdr.get("next_clicked"):
     st.session_state["active_year"] = active_y + 1
     st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
     st.rerun()
-st.divider()
 # === STRISCIA DATI – ANNO (riuso del renderer MESE per allineamento pixel-perfect) ===
 # === STRISCIA DATI – ANNO (riuso renderer MESE) ===
 kpi_year, deltas_year = _compute_year_kpis(df_view, active_y)
