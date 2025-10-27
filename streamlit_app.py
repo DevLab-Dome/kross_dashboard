@@ -286,34 +286,34 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
     col_rev, col_occ, col_notti, col_adr, col_rpar = st.columns([2,1,3,1,2], gap="large")
 
     with col_rev:
-        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="kpi-col" style="padding-right:16px;">', unsafe_allow_html=True)
+    st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill_html(deltas.get("Revenue"))}', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_occ:
-        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+with col_occ:
+    st.markdown('<div class="kpi-col" style="padding:0 16px;">', unsafe_allow_html=True)   # punto intermedio SINISTRO
+    st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill_html(deltas.get("Occupazione"))}', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_notti:
-        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+with col_notti:
+    st.markdown('<div class="kpi-col">', unsafe_allow_html=True)                            # MESE (centro)
+    st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill_html(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_adr:
-        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+with col_adr:
+    st.markdown('<div class="kpi-col" style="padding:0 16px;">', unsafe_allow_html=True)    # punto intermedio DESTRO
+    st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill_html(deltas.get("ADR"))}', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    with col_rpar:
-        st.markdown('<div style="text-align:center;">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+with col_rpar:
+    st.markdown('<div class="kpi-col" style="padding-left:16px;">', unsafe_allow_html=True)
+    st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill_html(deltas.get("RevPAR"))}', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     st.divider()
 
