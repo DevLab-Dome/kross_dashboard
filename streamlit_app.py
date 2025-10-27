@@ -265,7 +265,7 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
 .kpi-row {
   display: grid;
   grid-template-columns: 2fr 1fr 3fr 1fr 2fr;
-  column-gap: var(--dl-gap);
+  column-gap: 64px;        /* allinea al gap "large" dell'header */
   align-items: start;
 }
 .kpi-box {
