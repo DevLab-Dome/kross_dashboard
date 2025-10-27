@@ -494,7 +494,6 @@ def render_year_kpis_1547(kpi: dict, deltas: dict):
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{next_year}</div>', unsafe_allow_html=True)
 
-    st.divider()
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # -----------------------------------------------------------------------------
