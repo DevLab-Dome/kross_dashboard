@@ -259,47 +259,77 @@ def render_month_header_1547(month_label: str, prev_month_label: str, next_month
 # STRISCIA MESE – KPI (5 colonne allineate all’header)
 # -----------------------------------------------------------------------------
 def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
+    # --- CSS grid a 5 colonne fisse: 2fr 1fr 3fr 1fr 2fr ---
+    st.markdown("""
+<style>
+.kpi-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 3fr 1fr 2fr;
+  column-gap: var(--dl-gap);
+  align-items: start;
+}
+.kpi-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;   /* centra il contenuto nel proprio slot */
+}
+.kpi-label { font-size: 14px; color: #6b7280; margin-bottom: 6px; white-space: nowrap; }
+.kpi-value { font-size: 36px; font-weight: 700; color: #111827; line-height: 1.15; white-space: nowrap; }
+.kpi-pill  { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 999px;
+             font-size: 13px; font-weight: 600; margin-top: 8px; }
+.kpi-pill.up   { background: #ecfdf5; color: #16a34a; }
+.kpi-pill.down { background: #fef2f2; color: #dc2626; }
+</style>
+""", unsafe_allow_html=True)
+
+    # helper per la pill del delta
     def pill(delta: float) -> str:
-        if delta is None: return ""
-        cls  = "up" if delta >= 0 else "down"
-        icon = "↑" if delta >= 0 else "↓"
-        val  = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        if delta is None:
+            return ""
+        is_up = delta >= 0
+        cls = "up" if is_up else "down"
+        icon = "↑" if is_up else "↓"
+        val = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         return f'<span class="kpi-pill {cls}">{icon} {val}</span>'
 
-    col_rev, col_occ, col_notti, col_adr, col_rpar = _five_slots()
+    # HTML della riga KPI: 5 celle -> 1) Revenue  2) Occupazione  3) Notti vendute  4) ADR  5) RevPAR
+    html = f"""
+<div class="kpi-row">
+  <div class="kpi-box">
+    <div class="kpi-label">Revenue mese</div>
+    <div class="kpi-value">{kpi.get("Revenue","–")}</div>
+    {pill(deltas.get("Revenue"))}
+  </div>
 
-    with col_rev:   # sotto pulsante SX
-        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Revenue mese</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("Revenue","–")}</div>{pill(deltas.get("Revenue"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+  <div class="kpi-box">
+    <div class="kpi-label">Occupazione</div>
+    <div class="kpi-value">{kpi.get("Occupazione","–")}</div>
+    {pill(deltas.get("Occupazione"))}
+  </div>
 
-    with col_occ:   # punto intermedio sinistro
-        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Occupazione</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("Occupazione","–")}</div>{pill(deltas.get("Occupazione"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+  <div class="kpi-box">
+    <div class="kpi-label">Notti vendute</div>
+    <div class="kpi-value">{kpi.get("Notti vendute","–")}</div>
+    {pill(deltas.get("Notti vendute"))}
+  </div>
 
-    with col_notti: # centro (sotto mese corrente)
-        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">Notti vendute</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("Notti vendute","–")}</div>{pill(deltas.get("Notti vendute"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+  <div class="kpi-box">
+    <div class="kpi-label">ADR medio</div>
+    <div class="kpi-value">{kpi.get("ADR","–")}</div>
+    {pill(deltas.get("ADR"))}
+  </div>
 
-    with col_adr:   # punto intermedio destro
-        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">ADR medio</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("ADR","–")}</div>{pill(deltas.get("ADR"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col_rpar:  # sotto pulsante DX
-        st.markdown('<div class="kpi-col">', unsafe_allow_html=True)
-        st.markdown('<div class="kpi-label">RevPAR medio</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="kpi-value">{kpi.get("RevPAR","–")}</div>{pill(deltas.get("RevPAR"))}', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
+  <div class="kpi-box">
+    <div class="kpi-label">RevPAR medio</div>
+    <div class="kpi-value">{kpi.get("RevPAR","–")}</div>
+    {pill(deltas.get("RevPAR"))}
+  </div>
+</div>
+"""
+    st.markdown(html, unsafe_allow_html=True)
     st.divider()
-
+    
 # -----------------------------------------------------------------------------
 # RENDER PAGINA
 # -----------------------------------------------------------------------------
