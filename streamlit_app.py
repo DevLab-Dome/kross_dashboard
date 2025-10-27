@@ -77,6 +77,9 @@ st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 # CONFIG & STATE
 # -----------------------------------------------------------------------------
 CFG = load_config("config.yaml")
+ROOMS_DEFAULT = int(CFG.get("rooms_default", 5))
+ROOMS_MAP: dict = CFG.get("rooms_per_property", {})
+
 CURRENCY = CFG.get("currency_symbol", "€")
 
 today = datetime.now()
@@ -177,7 +180,7 @@ active_m = st.session_state["active_month"]
 curr_label, prev_label, next_label = _month_labels(active_y, active_m)
 
 # -----------------------------------------------------------------------------
-# KPI MESE (formattazioni)
+# KPI MESE (formattazioni + calcolo robusto)
 # -----------------------------------------------------------------------------
 def _fmt_eur(x: float) -> str:
     s = f"{x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
@@ -188,22 +191,64 @@ def _fmt_pct(x: float) -> str:
 def _fmt_th(n: int) -> str:
     return f"{n:,}".replace(",", "X").replace(".", ",").replace("X", ".")
 
-df_cur  = df_view[(df_view["year"] == active_y) & (df_view["month"] == active_m)].copy()
+def _first_sum(df: pd.DataFrame, cands: list[str]) -> float:
+    if df is None or df.empty: return 0.0
+    for c in cands:
+        if c in df.columns:
+            v = pd.to_numeric(df[c], errors="coerce").sum()
+            if pd.notna(v): return float(v)
+    return 0.0
+
+def _first_mean(df: pd.DataFrame, cands: list[str]) -> float:
+    if df is None or df.empty: return 0.0
+    for c in cands:
+        if c in df.columns:
+            v = pd.to_numeric(df[c], errors="coerce").mean()
+            if pd.notna(v): return float(v)
+    return 0.0
+
+def _rooms_avail_fallback(df_month_like: pd.DataFrame, year: int, month: int) -> float:
+    """Se mancano 'rooms_available', calcola: camere_per_struttura × giorni_del_mese, sommato sulle strutture presenti."""
+    if df_month_like is None or df_month_like.empty: 
+        return 0.0
+    days = pd.Period(f"{year}-{month:02d}").days_in_month
+    props = (df_month_like["property"].dropna().unique().tolist() 
+             if "property" in df_month_like.columns else [])
+    if not props:  # se non ci sono proprietà nel DF (edge case), usa selezione corrente se disponibile
+        props = []
+    total = 0.0
+    for p in props:
+        rooms = int(ROOMS_MAP.get(p, ROOMS_DEFAULT))
+        total += rooms * days
+    return float(total)
+
+# Sottoinsiemi anno/mese corrente e stesso mese anno precedente
+df_cur  = df_view[(df_view["year"] == active_y)     & (df_view["month"] == active_m)].copy()
 df_prev = df_view[(df_view["year"] == active_y - 1) & (df_view["month"] == active_m)].copy()
 
-sold_nights    = int(df_cur.get("occupied", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0
-rooms_avail    = float(df_cur.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
-revenue        = float(df_cur.get("revenue", pd.Series(dtype=float)).sum()) if not df_cur.empty else 0.0
-occ_pct        = (sold_nights / rooms_avail * 100.0) if rooms_avail > 0 else 0.0
-adr            = float(df_cur.get("adr", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
-revpar         = float(df_cur.get("revpar", pd.Series(dtype=float)).mean()) if not df_cur.empty else 0.0
+# Notti vendute (somma) – prova più nomi di colonna
+sold_nights    = int(round(_first_sum(df_cur,  ["occupied","notti","nights","rooms_sold","sold_nights"])))
+sold_nights_py = int(round(_first_sum(df_prev, ["occupied","notti","nights","rooms_sold","sold_nights"])))
 
-sold_nights_py = int(df_prev.get("occupied", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0
-rooms_avail_py = float(df_prev.get("rooms_available", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
-revenue_py     = float(df_prev.get("revenue", pd.Series(dtype=float)).sum()) if not df_prev.empty else 0.0
-occ_pct_py     = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
-adr_py         = float(df_prev.get("adr", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
-revpar_py      = float(df_prev.get("revpar", pd.Series(dtype=float)).mean()) if not df_prev.empty else 0.0
+# Camere disponibili – usa la colonna se c'è, altrimenti fallback da config
+rooms_avail    = _first_sum(df_cur,  ["rooms_available","rooms_avail","camere_disponibili"])
+rooms_avail_py = _first_sum(df_prev, ["rooms_available","rooms_avail","camere_disponibili"])
+if rooms_avail == 0.0:
+    rooms_avail    = _rooms_avail_fallback(df_cur,  active_y,     active_m)
+if rooms_avail_py == 0.0:
+    rooms_avail_py = _rooms_avail_fallback(df_prev, active_y - 1, active_m)
+
+# Revenue (somma), ADR/RevPAR (media giornaliera)
+revenue    = _first_sum(df_cur,  ["revenue","totale_revenue","ricavi"])
+revenue_py = _first_sum(df_prev, ["revenue","totale_revenue","ricavi"])
+adr        = _first_mean(df_cur,  ["adr","ADR"])
+adr_py     = _first_mean(df_prev, ["adr","ADR"])
+revpar     = _first_mean(df_cur,  ["revpar","RevPAR"])
+revpar_py  = _first_mean(df_prev, ["revpar","RevPAR"])
+
+# Occupazione
+occ_pct    = (sold_nights    / rooms_avail    * 100.0) if rooms_avail    > 0 else 0.0
+occ_pct_py = (sold_nights_py / rooms_avail_py * 100.0) if rooms_avail_py > 0 else 0.0
 
 kpi_header = {
     "Revenue": _fmt_eur(revenue),
