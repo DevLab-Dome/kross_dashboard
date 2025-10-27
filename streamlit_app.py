@@ -214,43 +214,47 @@ deltas_header = {
 # STRISCIA MESE – Navigazione (layout screenshot 15:47)
 # -----------------------------------------------------------------------------
 def render_month_header_1547(month_label: str, prev_month_label: str, next_month_label: str, compare_year: int):
+    # NAV MESE su 5 colonne fisse: [2, 1, 3, 1, 2]
     st.markdown("""
 <style>
+.row5{display:grid; grid-template-columns:2fr 1fr 3fr 1fr 2fr; gap: var(--dl-gap);}
 .mh-under{color:#0f172a;opacity:.6;font-size:15px;text-align:center;margin-top:2px;}
 .mh-center{text-align:center;margin-top:2px;}
 .mh-month{font-weight:700;font-size:22px;margin:0;}
 .mh-sub{color:#6b7280;font-size:13px;margin-top:2px;}
 div.mh-btn{ margin-bottom:2px; }
 div.mh-btn > button{
-    border:1px solid #e5e7eb !important; border-radius:10px !important;
-    background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
-    min-height:44px; min-width:120px; margin-bottom:0 !important;
+  border:1px solid #e5e7eb !important; border-radius:10px !important;
+  background:#ffffff !important; font-weight:700 !important; font-size:18px !important;
+  min-height:44px; min-width:120px; margin-bottom:0 !important;
 }
-div.mh-btn > button:hover{ border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important; }
+div.mh-btn > button:hover{
+  border-color:#1f6feb !important; box-shadow:0 0 0 3px rgba(31,111,235,.25) !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
-    # 5 colonne: [2, 1, 3, 1, 2]  => SX | (vuota) | MESE | (vuota) | DX
+    # Griglia a 5 colonne: c1 (SX) | c2 (vuota) | c3 (MESE) | c4 (vuota) | c5 (DX)
     c1, c2, c3, c4, c5 = st.columns([2,1,3,1,2], gap="large")
 
-    with c1:  # pulsante SX
+    with c1:  # pulsante sinistro + label mese precedente
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
         prev_clicked = st.button("◀", key="mh_prev", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under">{prev_month_label}</div>', unsafe_allow_html=True)
 
-    # c2: colonna vuota (spacer invisibile)
+    # c2: INTENZIONALMENTE VUOTA (spacer)
 
-    with c3:  # mese al centro
+    with c3:  # mese corrente al centro + testo comparazione
         st.markdown(
             f'<div class="mh-center"><p class="mh-month">{month_label}</p>'
             f'<div class="mh-sub">(anno di comparazione: {compare_year})</div></div>',
             unsafe_allow_html=True
         )
 
-    # c4: colonna vuota (spacer invisibile)
+    # c4: INTENZIONALMENTE VUOTA (spacer)
 
-    with c5:  # pulsante DX
+    with c5:  # pulsante destro + label mese successivo
         st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
         next_clicked = st.button("▶", key="mh_next", use_container_width=True)
         st.markdown('</div>', unsafe_allow_html=True)
