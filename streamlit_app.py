@@ -248,6 +248,105 @@ with st.container(border=True):
             }
 
             render_pickup_strip(kpi_cur, kpi_delta, titolo=f"Pick-up Giornaliero — {mese_sel}")
+# ─────────────────────────────────────────────────────────────────────────────
+# PICK-UP DATA WIRE-UP (ANNO) — nuova striscia appended in coda, no changes al resto
+# Aggregazione annuale:
+#  - Revenue/Notti/Rooms: somma
+#  - Occupazione %: (somma notti / somma rooms) * 100
+#  - ADR/RevPAR: media semplice dei mesi disponibili (proxy)
+# ─────────────────────────────────────────────────────────────────────────────
+from datetime import date
+import numpy as np
+import pandas as pd
+
+try:
+    from modules.pickup_engine import pickup_between
+except Exception as _e:
+    st.warning("Pick-up Engine non disponibile. Aggiungi modules/pickup_engine.py al repo.")
+    pickup_between = None
+
+DB_PATH = "…/…/.devlab/data/snapshots.db" if "DB_PATH" not in globals() else DB_PATH  # riusa se già definito
+
+with st.container(border=True):
+    st.caption("Nuova striscia • Pick-up Giornaliero — ANNO (sperimentale)")
+
+    colL, colR = st.columns([3, 2], gap="large")
+    with colL:
+        as_of_y = st.date_input("As-of (fotografia odierna)", value=date.today(), key="asof_year")
+        prev_auto_y = st.checkbox("Confronta con ultimo snapshot precedente (auto)", value=True, key="auto_prev_year")
+        prev_date_y = None if prev_auto_y else st.date_input("Confronta con (data precedente)", value=date.today(), key="prev_year")
+    with colR:
+        property_filter_y = st.text_input("Property (lascia vuoto per tutte)", value="", key="prop_year")
+
+    if pickup_between is not None:
+        df_pick_y = pickup_between(
+            DB_PATH,
+            as_of_current=as_of_y,
+            as_of_prev=prev_date_y,
+            property_name=(property_filter_y or None)
+        )
+
+        if df_pick_y.empty:
+            st.info("Nessuno snapshot trovato per la data selezionata. Importa prima i forecast con otb_snapshots.py.")
+        else:
+            # Selettore anno (dati presenti)
+            anni = sorted(df_pick_y["stay_year"].dropna().astype(int).unique().tolist(), reverse=True)
+            year_sel = st.selectbox("Anno di soggiorno", options=anni, index=0 if anni else None)
+
+            # Filtra anno
+            ydf = df_pick_y[df_pick_y["stay_year"] == year_sel].copy()
+
+            # Se property vuota: somma cross-property; se piena: già filtrato a monte
+            # Somme "strutturali"
+            def _sum(k): return float(pd.to_numeric(ydf[k], errors="coerce").fillna(0.0).sum())
+            nights_cur  = _sum("nights_sold_cur")
+            nights_prev = _sum("nights_sold_prev")
+            rooms_cur   = _sum("rooms_available_cur")
+            rooms_prev  = _sum("rooms_available_prev")
+
+            revenue_cur  = _sum("revenue_cur")
+            revenue_prev = _sum("revenue_prev")
+            revenue_delta = revenue_cur - revenue_prev
+
+            # Occupazione come rapporto (non somma di %)
+            occ_cur  = (nights_cur / rooms_cur * 100.0) if rooms_cur > 0 else 0.0
+            occ_prev = (nights_prev / rooms_prev * 100.0) if rooms_prev > 0 else 0.0
+            occ_delta = occ_cur - occ_prev
+
+            # ADR/RevPAR: media semplice dei mesi disponibili come proxy
+            def _mean(k):
+                v = pd.to_numeric(ydf[k], errors="coerce").dropna()
+                v = v[v != 0]
+                return float(v.mean()) if len(v) else 0.0
+            adr_cur   = _mean("adr_cur")
+            adr_prev  = _mean("adr_prev")
+            adr_delta = adr_cur - adr_prev
+
+            rpar_cur   = _mean("revpar_cur")
+            rpar_prev  = _mean("revpar_prev")
+            rpar_delta = rpar_cur - rpar_prev
+
+            notti_cur   = float(pd.to_numeric(ydf["nights_sold_cur"], errors="coerce").sum())
+            notti_prev  = float(pd.to_numeric(ydf["nights_sold_prev"], errors="coerce").sum())
+            notti_delta = notti_cur - notti_prev
+
+            # Mappa verso renderer
+            kpi_cur_y = {
+                "Revenue":       revenue_cur,
+                "Occupazione":   occ_cur,
+                "Notti vendute": notti_cur,
+                "ADR":           adr_cur,
+                "RevPAR":        rpar_cur,
+            }
+            kpi_delta_y = {
+                "Revenue":       revenue_delta,
+                "Occupazione":   occ_delta,
+                "Notti vendute": notti_delta,
+                "ADR":           adr_delta,
+                "RevPAR":        rpar_delta,
+            }
+
+            render_pickup_strip(kpi_cur_y, kpi_delta_y, titolo=f"Pick-up Giornaliero — {year_sel}")
 
 st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
