@@ -298,53 +298,56 @@ with st.container(border=True):
 
             # Se property vuota: somma cross-property; se piena: già filtrato a monte
             # Somme "strutturali"
-            def _sum(k): return float(pd.to_numeric(ydf[k], errors="coerce").fillna(0.0).sum())
-            nights_cur  = _sum("nights_sold_cur")
-            nights_prev = _sum("nights_sold_prev")
-            rooms_cur   = _sum("rooms_available_cur")
-            rooms_prev  = _sum("rooms_available_prev")
+def _sum(k): return float(pd.to_numeric(ydf[k], errors="coerce").fillna(0.0).sum())
 
-            revenue_cur  = _sum("revenue_cur")
-            revenue_prev = _sum("revenue_prev")
-            revenue_delta = revenue_cur - revenue_prev
+# Totali cur/prev per grandezze additive
+revenue_cur   = _sum("revenue_cur")
+revenue_prev  = _sum("revenue_prev")
+nights_cur    = _sum("nights_sold_cur")
+nights_prev   = _sum("nights_sold_prev")
+rooms_cur     = _sum("rooms_available_cur")
+rooms_prev    = _sum("rooms_available_prev")
 
-            # Occupazione come rapporto (non somma di %)
-            occ_cur  = (nights_cur / rooms_cur * 100.0) if rooms_cur > 0 else 0.0
-            occ_prev = (nights_prev / rooms_prev * 100.0) if rooms_prev > 0 else 0.0
-            occ_delta = occ_cur - occ_prev
+# Δ additive
+revenue_delta = revenue_cur - revenue_prev
+notti_delta   = nights_cur - nights_prev
 
-            # ADR/RevPAR: media semplice dei mesi disponibili come proxy
-            def _mean(k):
-                v = pd.to_numeric(ydf[k], errors="coerce").dropna()
-                v = v[v != 0]
-                return float(v.mean()) if len(v) else 0.0
-            adr_cur   = _mean("adr_cur")
-            adr_prev  = _mean("adr_prev")
-            adr_delta = adr_cur - adr_prev
+# Occupazione annua (rapporto su somme)
+occ_cur  = (nights_cur / rooms_cur * 100.0) if rooms_cur > 0 else 0.0
+occ_prev = (nights_prev / rooms_prev * 100.0) if rooms_prev > 0 else 0.0
+occ_delta = occ_cur - occ_prev
 
-            rpar_cur   = _mean("revpar_cur")
-            rpar_prev  = _mean("revpar_prev")
-            rpar_delta = rpar_cur - rpar_prev
+# ADR annuo con pesi corretti: tot_revenue / tot_nights
+adr_cur  = (revenue_cur / nights_cur) if nights_cur > 0 else 0.0
+adr_prev = (revenue_prev / nights_prev) if nights_prev > 0 else 0.0
+adr_delta = adr_cur - adr_prev
 
-            notti_cur   = float(pd.to_numeric(ydf["nights_sold_cur"], errors="coerce").sum())
-            notti_prev  = float(pd.to_numeric(ydf["nights_sold_prev"], errors="coerce").sum())
-            notti_delta = notti_cur - notti_prev
+# RevPAR annuo con pesi corretti: media ponderata su rooms_available
+ydf["_w_revpar_cur"]  = pd.to_numeric(ydf["revpar_cur"], errors="coerce").fillna(0.0) * pd.to_numeric(ydf["rooms_available_cur"], errors="coerce").fillna(0.0)
+ydf["_w_revpar_prev"] = pd.to_numeric(ydf["revpar_prev"], errors="coerce").fillna(0.0) * pd.to_numeric(ydf["rooms_available_prev"], errors="coerce").fillna(0.0)
+w_cur  = float(pd.to_numeric(ydf["rooms_available_cur"], errors="coerce").fillna(0.0).sum())
+w_prev = float(pd.to_numeric(ydf["rooms_available_prev"], errors="coerce").fillna(0.0).sum())
 
-            # Mappa verso renderer
-            kpi_cur_y = {
-                "Revenue":       revenue_cur,
-                "Occupazione":   occ_cur,
-                "Notti vendute": notti_cur,
-                "ADR":           adr_cur,
-                "RevPAR":        rpar_cur,
-            }
-            kpi_delta_y = {
-                "Revenue":       revenue_delta,
-                "Occupazione":   occ_delta,
-                "Notti vendute": notti_delta,
-                "ADR":           adr_delta,
-                "RevPAR":        rpar_delta,
-            }
+rpar_cur  = (float(ydf["_w_revpar_cur"].sum())  / w_cur)  if w_cur  > 0 else 0.0
+rpar_prev = (float(ydf["_w_revpar_prev"].sum()) / w_prev) if w_prev > 0 else 0.0
+rpar_delta = rpar_cur - rpar_prev
+
+# Mappa verso renderer
+kpi_cur_y = {
+    "Revenue":       revenue_cur,
+    "Occupazione":   occ_cur,
+    "Notti vendute": nights_cur,
+    "ADR":           adr_cur,
+    "RevPAR":        rpar_cur,
+}
+kpi_delta_y = {
+    "Revenue":       revenue_delta,
+    "Occupazione":   occ_delta,
+    "Notti vendute": notti_delta,
+    "ADR":           adr_delta,
+    "RevPAR":        rpar_delta,
+}
+
 
             render_pickup_strip(kpi_cur_y, kpi_delta_y, titolo=f"Pick-up Giornaliero — {year_sel}")
 
