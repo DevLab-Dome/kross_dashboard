@@ -71,6 +71,94 @@ div.mh-btn > button:hover{
 st.set_page_config(page_title="DevLab – Kross Dashboard", layout="wide", initial_sidebar_state="collapsed")
 inject_base_styles()
 st.markdown('<div class="dl-root"></div>', unsafe_allow_html=True)
+# ─────────────────────────────────────────────────────────────────────────────
+# RENDERER NUOVE STRISCE PICK-UP (MESE/ANNO) — solo UI, zero side-effect
+# Classi CSS namespaced: .pu-… per non toccare le strisce attuali
+# ─────────────────────────────────────────────────────────────────────────────
+from typing import Dict, Literal
+
+def _pu_grid():
+    """Griglia identica alle strisce correnti: [2,1,3,1,2]."""
+    return st.columns([2, 1, 3, 1, 2], gap="large")
+
+def _pu_styles():
+    st.markdown("""
+<style>
+.pu-col{ width:100%; display:flex; flex-direction:column; align-items:center; }
+.pu-label{ font-size:14px; color:#6b7280; margin-bottom:6px; white-space:nowrap; }
+.pu-value{ font-size:36px; font-weight:400; color:#111827; line-height:1.15; white-space:nowrap; }
+.pu-pill{ display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px;
+          font-size:13px; font-weight:600; margin-top:8px; }
+.pu-pill.up{ background:#ecfdf5; color:#16a34a; }
+.pu-pill.down{ background:#fef2f2; color:#dc2626; }
+</style>
+""", unsafe_allow_html=True)
+
+def _pu_pill(delta: float) -> str:
+    """Pillola Δ (verde/rosso) con formattazione italiana."""
+    if delta is None:
+        return ""
+    cls  = "up" if delta >= 0 else "down"
+    icon = "↑" if delta >= 0 else "↓"
+    val  = f"{delta:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return f'<span class="pu-pill {cls}">{icon} {val}</span>'
+
+def _pu_format(cur: float, kind: Literal["eur","pct","int"]="eur") -> str:
+    """
+    Usa i formatter GIÀ esistenti (_fmt_eur/_fmt_pct/_fmt_th) senza modificarli.
+    """
+    if kind == "pct":
+        return _fmt_pct(cur or 0.0)
+    if kind == "int":
+        return _fmt_th(int(cur or 0))
+    return _fmt_eur(cur or 0.0)
+
+def render_pickup_strip(kpi_cur: Dict[str, float], kpi_delta: Dict[str, float], titolo: str):
+    """
+    Renderer per nuove strisce Pick-up (possono convivere nelle sezioni esistenti).
+    Nessun accesso ai dati qui: solo presentazione.
+    Attesi:
+      kpi_cur   = {"Revenue":f, "Occupazione":f, "Notti vendute":f, "ADR":f, "RevPAR":f}
+      kpi_delta = stessi key, Δ (oggi - ieri)
+    """
+    _pu_styles()
+    st.subheader(titolo, divider=False)
+
+    col_rev, col_occ, col_notti, col_adr, col_rpar = _pu_grid()
+
+    with col_rev:
+        st.markdown('<div class="pu-col">', unsafe_allow_html=True)
+        st.markdown('<div class="pu-label">Revenue</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="pu-value">{_pu_format(kpi_cur.get("Revenue",0.0),"eur")}</div>{_pu_pill(kpi_delta.get("Revenue",0.0))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_occ:
+        st.markdown('<div class="pu-col">', unsafe_allow_html=True)
+        st.markdown('<div class="pu-label">Occupazione</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="pu-value">{_pu_format(kpi_cur.get("Occupazione",0.0),"pct")}</div>{_pu_pill(kpi_delta.get("Occupazione",0.0))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_notti:
+        st.markdown('<div class="pu-col">', unsafe_allow_html=True)
+        st.markdown('<div class="pu-label">Notti vendute</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="pu-value">{_pu_format(kpi_cur.get("Notti vendute",0.0),"int")}</div>{_pu_pill(kpi_delta.get("Notti vendute",0.0))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_adr:
+        st.markdown('<div class="pu-col">', unsafe_allow_html=True)
+        st.markdown('<div class="pu-label">ADR</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="pu-value">{_pu_format(kpi_cur.get("ADR",0.0),"eur")}</div>{_pu_pill(kpi_delta.get("ADR",0.0))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_rpar:
+        st.markdown('<div class="pu-col">', unsafe_allow_html=True)
+        st.markdown('<div class="pu-label">RevPAR</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="pu-value">{_pu_format(kpi_cur.get("RevPAR",0.0),"eur")}</div>{_pu_pill(kpi_delta.get("RevPAR",0.0))}', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.divider()
+# ─────────────────────────────────────────────────────────────────────────────
+
 st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
 # -----------------------------------------------------------------------------
