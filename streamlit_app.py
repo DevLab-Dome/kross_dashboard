@@ -348,6 +348,135 @@ with st.container(border=True):
 
             render_pickup_strip(kpi_cur_y, kpi_delta_y, titolo=f"Pick-up Giornaliero — {year_sel}")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# TABELLINA • Movimenti di pick-up (oggi vs ieri) — append-only
+# Mostra dove si sono mossi € e notti per property × mese di soggiorno
+# ─────────────────────────────────────────────────────────────────────────────
+from datetime import date
+import pandas as pd
+import numpy as np
+
+try:
+    from modules.pickup_engine import pickup_between
+except Exception as _e:
+    pickup_between = None
+    st.warning("Pick-up Engine non disponibile. Aggiungi modules/pickup_engine.py al repo.")
+
+DB_PATH = ".devlab/data/snapshots.db" if "DB_PATH" not in globals() else DB_PATH  # riusa se già definito
+
+with st.container(border=True):
+    st.caption("Tabella • Movimenti di pick-up (oggi vs ieri)")
+
+    # Controlli (indipendenti da quelli delle strisce)
+    c1, c2, c3, c4 = st.columns([1.6, 1.6, 1.6, 1.2], gap="large")
+    with c1:
+        as_of_tbl = st.date_input("As-of", value=date.today(), key="asof_moves")
+    with c2:
+        prev_auto_tbl = st.checkbox("Precedente automatico", value=True, key="auto_prev_moves")
+    with c3:
+        prev_tbl = None if prev_auto_tbl else st.date_input("Confronta con", value=date.today(), key="prev_moves")
+    with c4:
+        only_changes = st.checkbox("Solo variazioni ≠ 0", value=True)
+
+    c5, c6 = st.columns([2, 2], gap="large")
+    with c5:
+        prop_tbl = st.text_input("Property (vuoto = tutte)", value="", key="prop_moves")
+    with c6:
+        order_by_rev = st.checkbox("Ordina per Δ Revenue desc", value=True)
+
+    if pickup_between is None:
+        st.stop()
+
+    dfm = pickup_between(
+        DB_PATH,
+        as_of_current=as_of_tbl,
+        as_of_prev=prev_tbl,
+        property_name=(prop_tbl or None)
+    )
+
+    if dfm.empty:
+        st.info("Nessuno snapshot per la data selezionata. Importa prima i forecast con otb_snapshots.py.")
+    else:
+        # Etichetta mese
+        dfm["Mese"] = pd.to_datetime(
+            dfm["stay_year"].astype(int).astype(str) + "-" + dfm["stay_month"].astype(int).astype(str) + "-01"
+        ).dt.strftime("%b %Y").str.capitalize()
+
+        # Selezione colonne: valori correnti + Δ (assolute)
+        view = pd.DataFrame({
+            "Property": dfm["property"].astype(str),
+            "Mese": dfm["Mese"],
+            "Revenue (cur)": pd.to_numeric(dfm["revenue_cur"], errors="coerce").fillna(0.0),
+            "Δ Revenue": pd.to_numeric(dfm["revenue_delta"], errors="coerce").fillna(0.0),
+            "Notti (cur)": pd.to_numeric(dfm["nights_sold_cur"], errors="coerce").fillna(0.0),
+            "Δ Notti": pd.to_numeric(dfm["nights_sold_delta"], errors="coerce").fillna(0.0),
+            "Occ % (cur)": pd.to_numeric(dfm["occupancy_pct_cur"], errors="coerce").fillna(0.0),
+            "Δ Occ p.p.": pd.to_numeric(dfm["occupancy_pct_delta"], errors="coerce").fillna(0.0),
+            "ADR (cur)": pd.to_numeric(dfm["adr_cur"], errors="coerce").fillna(0.0),
+            "Δ ADR": pd.to_numeric(dfm["adr_delta"], errors="coerce").fillna(0.0),
+            "RevPAR (cur)": pd.to_numeric(dfm["revpar_cur"], errors="coerce").fillna(0.0),
+            "Δ RevPAR": pd.to_numeric(dfm["revpar_delta"], errors="coerce").fillna(0.0),
+        })
+
+        if only_changes:
+            mask = (view[["Δ Revenue","Δ Notti","Δ Occ p.p.","Δ ADR","Δ RevPAR"]] != 0).any(axis=1)
+            view = view.loc[mask]
+
+        # Ordinamento
+        if order_by_rev:
+            view = view.sort_values(["Δ Revenue","Property","Mese"], ascending=[False, True, True])
+        else:
+            view = view.sort_values(["Property","Mese"], ascending=[True, True])
+
+        # Totale riga finale (se tutte le property)
+        if prop_tbl.strip() == "":
+            totals = pd.Series({
+                "Property": "TOTALE",
+                "Mese": "",
+                "Revenue (cur)": view["Revenue (cur)"].sum(),
+                "Δ Revenue": view["Δ Revenue"].sum(),
+                "Notti (cur)": view["Notti (cur)"].sum(),
+                "Δ Notti": view["Δ Notti"].sum(),
+                "Occ % (cur)": 0.0,         # non sommiamo percentuali
+                "Δ Occ p.p.": view["Δ Occ p.p."].mean(),  # proxy: media delle variazioni in p.p.
+                "ADR (cur)": view["ADR (cur)"].mean(),    # proxy
+                "Δ ADR": view["Δ ADR"].mean(),            # proxy
+                "RevPAR (cur)": view["RevPAR (cur)"].mean(),  # proxy
+                "Δ RevPAR": view["Δ RevPAR"].mean(),          # proxy
+            })
+            view = pd.concat([view, totals.to_frame().T], ignore_index=True)
+
+        # Formattazioni display
+        fmt_eur = lambda s: s.map(lambda x: _fmt_eur(float(x)))
+        fmt_int = lambda s: s.map(lambda x: _fmt_th(int(x)))
+        fmt_pct = lambda s: s.map(lambda x: _fmt_pct(float(x)))
+
+        disp = view.copy()
+        disp["Revenue (cur)"] = fmt_eur(disp["Revenue (cur)"])
+        disp["Δ Revenue"]     = fmt_eur(disp["Δ Revenue"])
+        disp["Notti (cur)"]   = fmt_int(disp["Notti (cur)"])
+        disp["Δ Notti"]       = fmt_int(disp["Δ Notti"])
+        disp["Occ % (cur)"]   = fmt_pct(disp["Occ % (cur)"])
+        # Δ Occ espresso in punti percentuali, usiamo _fmt_pct su valore assoluto (coerente visivamente)
+        disp["Δ Occ p.p."]    = fmt_pct(disp["Δ Occ p.p."])
+        disp["ADR (cur)"]     = fmt_eur(disp["ADR (cur)"])
+        disp["Δ ADR"]         = fmt_eur(disp["Δ ADR"])
+        disp["RevPAR (cur)"]  = fmt_eur(disp["RevPAR (cur)"])
+        disp["Δ RevPAR"]      = fmt_eur(disp["Δ RevPAR"])
+
+        # Visualizzazione
+        st.dataframe(
+            disp,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        # Nota metodologica
+        st.markdown(
+            "<small>Note: Δ su ADR/RevPAR/Occ annidate al mese; per aggregazioni a livello più alto useremo pesi appropriati nei prossimi step.</small>",
+            unsafe_allow_html=True
+        )
+
 st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
 # -----------------------------------------------------------------------------
