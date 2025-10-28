@@ -159,6 +159,96 @@ def render_pickup_strip(kpi_cur: Dict[str, float], kpi_delta: Dict[str, float], 
     st.divider()
 # ─────────────────────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PICK-UP DATA WIRE-UP (MESE) — usa gli snapshot salvati + renderer .pu-*
+# Non modifica nulla di esistente: aggiunge una striscia opzionale in coda
+# ─────────────────────────────────────────────────────────────────────────────
+from datetime import date
+import pandas as pd
+
+try:
+    from modules.pickup_engine import pickup_between
+except Exception as _e:
+    st.warning("Pick-up Engine non disponibile. Aggiungi modules/pickup_engine.py al repo.")
+    pickup_between = None
+
+DB_PATH = ".devlab/data/snapshots.db"
+
+with st.container(border=True):
+    st.caption("Nuova striscia • Pick-up Giornaliero — MESE (sperimentale)")
+    colL, colR = st.columns([3, 2], gap="large")
+    with colL:
+        as_of = st.date_input("As-of (fotografia odierna)", value=date.today())
+        prev_auto = st.checkbox("Confronta con ultimo snapshot precedente (auto)", value=True)
+        prev_date = None if prev_auto else st.date_input("Confronta con (data precedente)", value=date.today())
+    with colR:
+        property_filter = st.text_input("Property (lascia vuoto per tutte)", value="")
+
+    if pickup_between is not None:
+        df_pick = pickup_between(
+            DB_PATH,
+            as_of_current=as_of,
+            as_of_prev=prev_date,
+            property_name=(property_filter or None)
+        )
+
+        if df_pick.empty:
+            st.info("Nessuno snapshot trovato per la data selezionata. Importa prima i forecast con otb_snapshots.py.")
+        else:
+            # Selezione mese/anno di soggiorno da visualizzare
+            df_pick["mese_label"] = pd.to_datetime(
+                df_pick["stay_year"].astype(str) + "-" + df_pick["stay_month"].astype(str) + "-01"
+            ).dt.strftime("%B %Y").str.capitalize()
+
+            mcol1, mcol2 = st.columns([2, 3])
+            with mcol1:
+                # Ordina discendente per anno/mese
+                options = df_pick.sort_values(["stay_year","stay_month"], ascending=[False, False])["mese_label"].unique().tolist()
+                mese_sel = st.selectbox("Mese di soggiorno", options=options, index=0 if options else None)
+            with mcol2:
+                st.write("")
+
+            # Estrae la riga aggregata del mese scelto (se property vuota, somma su tutte)
+            view = df_pick[df_pick["mese_label"] == mese_sel].copy()
+            if property_filter == "":
+                # Somma su tutte le property (mese selezionato)
+                keys = ["revenue","nights_sold","rooms_available","occupancy_pct","adr","revpar"]
+                sums = {k+"_cur": view[k+"_cur"].sum() for k in keys}
+                sums.update({k+"_prev": view[k+"_prev"].sum() for k in keys})
+                sums.update({k+"_delta": view[k+"_delta"].sum() for k in keys})
+                # Delta % come media semplice (proxy)
+                sums.update({k+"_delta_pct": view[k+"_delta_pct"].mean() for k in keys})
+                row = pd.Series(sums)
+            else:
+                # Una sola property → ci aspettiamo 1 riga; se più righe, somma come sopra
+                if len(view) > 1:
+                    keys = ["revenue","nights_sold","rooms_available","occupancy_pct","adr","revpar"]
+                    sums = {k+"_cur": view[k+"_cur"].sum() for k in keys}
+                    sums.update({k+"_prev": view[k+"_prev"].sum() for k in keys})
+                    sums.update({k+"_delta": view[k+"_delta"].sum() for k in keys})
+                    sums.update({k+"_delta_pct": view[k+"_delta_pct"].mean() for k in keys})
+                    row = pd.Series(sums)
+                else:
+                    row = view.squeeze()
+
+            # Mappa verso il renderer UI (valori correnti + Δ assolute)
+            kpi_cur = {
+                "Revenue":       float(row.get("revenue_cur", 0.0)),
+                "Occupazione":   float(row.get("occupancy_pct_cur", 0.0)),
+                "Notti vendute": float(row.get("nights_sold_cur", 0.0)),
+                "ADR":           float(row.get("adr_cur", 0.0)),
+                "RevPAR":        float(row.get("revpar_cur", 0.0)),
+            }
+            kpi_delta = {
+                "Revenue":       float(row.get("revenue_delta", 0.0)),
+                "Occupazione":   float(row.get("occupancy_pct_delta", 0.0)),
+                "Notti vendute": float(row.get("nights_sold_delta", 0.0)),
+                "ADR":           float(row.get("adr_delta", 0.0)),
+                "RevPAR":        float(row.get("revpar_delta", 0.0)),
+            }
+
+            render_pickup_strip(kpi_cur, kpi_delta, titolo=f"Pick-up Giornaliero — {mese_sel}")
+
 st.title("DevLab – Kross Dashboard – Multi Struttura [DEV]")
 
 # -----------------------------------------------------------------------------
