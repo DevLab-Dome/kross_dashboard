@@ -203,3 +203,4 @@ def _safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
     with np.errstate(divide="ignore", invalid="ignore"):
         res = a / b
     return res.replace([np.inf, -np.inf], np.nan)
+    
