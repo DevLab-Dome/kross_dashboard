@@ -569,7 +569,7 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
     html = f"""
 <div class="kpi-row">
   <div class="kpi-box">
-    <div class="kpi-label">Revenue mese</div>
+    <div class="kpi-label">Revenue anno</div>
     <div class="kpi-value">{kpi.get("Revenue","–")}</div>
     {pill(deltas.get("Revenue"))}
   </div>
