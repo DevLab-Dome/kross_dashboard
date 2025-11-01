@@ -119,15 +119,29 @@ def parse_kross_excel(
                     pass
         snapshot_date = snap  # può restare None (inbox)
 
-    # lettura excel
+    # --- lettura tabella con fallback CSV ---
+raw = None
+try:
+    # Tentativo 1: vero Excel (openpyxl)
     xl = pd.ExcelFile(file_path, engine="openpyxl")
     sh = sheet_name or (xl.sheet_names[0] if xl.sheet_names else None)
     if sh is None:
         raise ValueError(f"Nessun foglio trovato in: {file_path}")
-
     raw = xl.parse(sh)
-    if not isinstance(raw, pd.DataFrame) or raw.empty:
-        return _empty_frame(property_name, snapshot_date), ParsedInfo(property_name, snapshot_date, 0, file_path)
+except (BadZipFile, ValueError, FileNotFoundError):
+    # Tentativo 2: CSV (separatore auto, header prima riga)
+    try:
+        raw = pd.read_csv(file_path, sep=None, engine="python")
+    except Exception:
+        # Tentativo 3: CSV con separatore ';' (frequente negli export)
+        try:
+            raw = pd.read_csv(file_path, sep=";")
+        except Exception as e:
+            raise ValueError(f"Impossibile leggere il file come Excel o CSV: {file_path} — {e}")
+
+# Se ancora vuoto o non DataFrame
+if not isinstance(raw, pd.DataFrame) or raw.empty:
+    return _empty_frame(property_name, snapshot_date), ParsedInfo(property_name, snapshot_date, 0, file_path)
 
     # mappa le colonne
     colmap = _match_columns(raw)
