@@ -226,13 +226,12 @@ st.sidebar.button("Svuota caricamenti", use_container_width=True)
 # Main – show KPIs from baseline if present
 # ---------------------------------------------------------------------
 if BASELINE_ALL is None or BASELINE_ALL.empty:
-    # ---- Bootstrap dati baseline in sessione ----
-    pass
+   # ---- Bootstrap dati baseline in sessione ----
 ensure_baseline_in_session()
 base_df: pd.DataFrame = st.session_state.get("baseline_df", pd.DataFrame())
 properties = st.session_state.get("properties", [])
 
-# Sidebar — Seleziona struttura per l'analisi
+# Sidebar — Vista e selezione strutture
 st.sidebar.subheader("Vista")
 sel_props = st.sidebar.multiselect(
     "Seleziona struttura per l'analisi",
@@ -240,37 +239,45 @@ sel_props = st.sidebar.multiselect(
     default=(properties[:1] if properties else []),
 )
 
-# Se il baseline è vuoto, mostra un avviso e interrompe il render (evita pagina bianca)
+# Se il baseline è vuoto non proseguire (evita pagina bianca)
 if base_df.empty or not properties:
     st.warning("Baseline non trovato o vuoto: impossibile popolare la dashboard.")
     st.stop()
 
-
-# Vista (singola/aggregata)
+# Radio: Singola / Aggregata
 vista = st.sidebar.radio("Vista", ["Singola struttura", "Aggregata"], index=0)
 
-# ---- Costruisci il sottoinsieme dati da baseline in base alla selezione ----
-if sel_props:
+# Gestione selezione in singola vista (fallback automatico)
+if vista == "Singola struttura":
+    if not sel_props and properties:
+        sel_props = [properties[0]]
+    elif not sel_props:
+        st.warning("Seleziona almeno una struttura.")
+        st.stop()
+
+# Proprietà effettive per il filtro
+active_props = sel_props if vista == "Aggregata" else sel_props[:1]
+
+# Costruisci df_view in base alla selezione
+if active_props:
     df_view = base_df[base_df["property"].isin(active_props)].copy()
 else:
-    # nessuna selezione → usa tutto il baseline
     df_view = base_df.copy()
 
-# se ancora vuoto, interrompi in modo chiaro (evita dashboard “bianca”)
+# Se ancora vuoto, interrompi con messaggio chiaro
 if df_view.empty:
     st.warning("Nessun dato disponibile nel baseline per la selezione corrente.")
     st.stop()
 
-# ---- Anno/mese attivi (fallback robusto) ----
-if "year" in df_view.columns:
-    active_y = int(pd.to_numeric(df_view["year"], errors="coerce").dropna().max())
-else:
-    active_y = pd.Timestamp.today().year
-
-if "month" in df_view.columns:
-    active_m = int(pd.to_numeric(df_view["month"], errors="coerce").dropna().max())
-else:
-    active_m = pd.Timestamp.today().month
+# Anno/mese attivi (robusti)
+active_y = (
+    int(pd.to_numeric(df_view["year"], errors="coerce").dropna().max())
+    if "year" in df_view.columns else pd.Timestamp.today().year
+)
+active_m = (
+    int(pd.to_numeric(df_view["month"], errors="coerce").dropna().max())
+    if "month" in df_view.columns else pd.Timestamp.today().month
+)
 # determine active property (singola vista uses the first selected)
 if vista == "Singola struttura":
     if not sel_props and properties:
