@@ -119,7 +119,7 @@ def parse_kross_excel(
         snapshot_date = snap  # può restare None (inbox)
 
     # lettura excel
-    xl = pd.ExcelFile(file_path)
+    xl = pd.ExcelFile(file_path, engine="openpyxl")
     sh = sheet_name or (xl.sheet_names[0] if xl.sheet_names else None)
     if sh is None:
         raise ValueError(f"Nessun foglio trovato in: {file_path}")
