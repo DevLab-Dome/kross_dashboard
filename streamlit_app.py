@@ -227,6 +227,7 @@ st.sidebar.button("Svuota caricamenti", use_container_width=True)
 # ---------------------------------------------------------------------
 if BASELINE_ALL is None or BASELINE_ALL.empty:
     # ---- Bootstrap dati baseline in sessione ----
+    pass
 ensure_baseline_in_session()
 base_df: pd.DataFrame = st.session_state.get("baseline_df", pd.DataFrame())
 properties = st.session_state.get("properties", [])
