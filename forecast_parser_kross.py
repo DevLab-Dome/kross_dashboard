@@ -1,20 +1,10 @@
 # forecast_parser_kross.py
-# Parser robusto per i file Excel esportati da Kross con colonne in italiano.
-# Compatibile con il file esempio: unico sheet "Worksheet" e intestazioni:
-#  - Data, Unità, Bloccate, Bloccate %, Occupate, Occupate %, Totale revenue, ADR, RevPar, Prenotazioni, ...
-#
-# Output standardizzato per la dashboard (pick-up e baseline merge):
-#  columns: [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
-#
-# NOTE:
-# - mapping case-insensitive e tollerante a spazi/accents
-# - conversione data in formato datetime.date
-# - coercizione numerica su KPI
-# - sheet_name: se non specificato, usa il primo foglio
+# Parser robusto per export Kross (IT) con fallback CSV se il file .xlsx non è un vero Excel.
+# Output standardizzato:
+#   [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
 
-from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple
 import pandas as pd
 import numpy as np
 import os
@@ -22,10 +12,9 @@ import re
 from datetime import datetime
 from zipfile import BadZipFile
 
-# --- MAPPING COLONNE ---------------------------------------------------------
+# ---- MAPPING COLONNE (case-insensitive, spazi normalizzati) -----------------
 
-# chiavi = canonico; valori = lista di possibili intestazioni (case-insensitive)
-COLUMN_ALIASES: Dict[str, list[str]] = {
+COLUMN_ALIASES: Dict[str, list] = {
     "stay_date": ["data", "giorno", "date"],
     "rooms_sold": ["occupate", "camere occupate", "rooms sold"],
     "revenue_total": ["totale revenue", "revenue", "ricavi totali"],
@@ -33,29 +22,23 @@ COLUMN_ALIASES: Dict[str, list[str]] = {
     "revpar": ["revpar", "rev par"],
 }
 
-# normalizza il nome colonna: minuscolo, spazi compressi, senza accenti
 def _norm(s: str) -> str:
-    s_low = s.strip().lower()
-    s_low = re.sub(r"\s+", " ", s_low)
+    s = str(s).strip().lower()
+    s = re.sub(r"\s+", " ", s)
     # rimuovi accenti comuni
-    repl = str.maketrans("àèéìòóù", "aeeioou")
-    return s_low.translate(repl)
+    return s.translate(str.maketrans("àèéìòóù", "aeeioou"))
 
 def _match_columns(df: pd.DataFrame) -> Dict[str, str]:
     norm_map = {_norm(c): c for c in df.columns}
     resolved: Dict[str, str] = {}
     for key, aliases in COLUMN_ALIASES.items():
-        found = None
         for alias in aliases:
-            alias_norm = _norm(alias)
-            if alias_norm in norm_map:
-                found = norm_map[alias_norm]
+            if _norm(alias) in norm_map:
+                resolved[key] = norm_map[_norm(alias)]
                 break
-        if found:
-            resolved[key] = found
     return resolved
 
-# --- DATACLASS DI USCITA (OPZIONALE) -----------------------------------------
+# ---- DATACLASS DI SUPPORTO --------------------------------------------------
 
 @dataclass(frozen=True)
 class ParsedInfo:
@@ -64,28 +47,63 @@ class ParsedInfo:
     rows: int
     source_path: str
 
-# --- FUNZIONI PRINCIPALI -----------------------------------------------------
+# ---- HELPERS ----------------------------------------------------------------
+
+def _empty_frame(property_name: str, snapshot_date: Optional[datetime]) -> pd.DataFrame:
+    return pd.DataFrame(
+        columns=["property", "snapshot_date", "stay_date", "rooms_sold", "revenue_total", "adr", "revpar"]
+    )
+
+def _to_date(s: pd.Series) -> pd.Series:
+    def _one(x: Any):
+        if pd.isna(x):
+            return np.nan
+        if isinstance(x, (pd.Timestamp, datetime)):
+            return x.date()
+        # Excel serial (approssimazione comune)
+        if isinstance(x, (int, float)) and not isinstance(x, bool):
+            dt = pd.to_datetime(x, unit="D", origin="1899-12-30", errors="coerce")
+            return dt.date() if not pd.isna(dt) else np.nan
+        xs = str(x).strip()
+        dt = pd.to_datetime(xs, errors="coerce", dayfirst=False)
+        if pd.isna(dt):
+            dt = pd.to_datetime(xs, errors="coerce", dayfirst=True)
+        return dt.date() if not pd.isna(dt) else np.nan
+    return s.map(_one)
+
+def _to_numeric(s: pd.Series) -> pd.Series:
+    return pd.to_numeric(s, errors="coerce")
+
+def _safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
+    with np.errstate(divide="ignore", invalid="ignore"):
+        r = a / b
+    return r.replace([np.inf, -np.inf], np.nan)
+
+# ---- FUNZIONE PRINCIPALE ----------------------------------------------------
 
 def parse_kross_excel(
     file_path: str,
     property_name: Optional[str] = None,
     snapshot_date: Optional[datetime] = None,
     sheet_name: Optional[str] = None,
-) -> tuple[pd.DataFrame, ParsedInfo]:
+) -> Tuple[pd.DataFrame, ParsedInfo]:
     """
-    Legge un file Excel Kross e restituisce un DataFrame con colonne canoniche:
-    [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
-    Fallback automatico: se il file non è un vero Excel, prova come CSV.
+    Legge un export Kross (.xlsx reale o CSV mascherato) e restituisce colonne canoniche:
+      [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
+    Se il file .xlsx non è un vero Excel, usa fallback CSV (auto-sep, poi ';').
     """
-    # --- inferenze da path ---
+
+    # --- inferenze dal path: property e snapshot_date ---
     if property_name is None:
         parts = os.path.normpath(file_path).split(os.sep)
         prop = None
         for i, p in enumerate(parts):
             if p == "inbox" and i > 0:
-                prop = parts[i - 1]; break
+                prop = parts[i - 1]
+                break
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p) and i > 0:
-                prop = parts[i - 1]; break
+                prop = parts[i - 1]
+                break
         property_name = prop or "UNKNOWN"
 
     if snapshot_date is None:
@@ -93,7 +111,8 @@ def parse_kross_excel(
         for p in os.path.normpath(file_path).split(os.sep):
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p):
                 try:
-                    snap = datetime.strptime(p, "%Y-%m-%d"); break
+                    snap = datetime.strptime(p, "%Y-%m-%d")
+                    break
                 except Exception:
                     pass
         snapshot_date = snap  # può restare None
@@ -125,14 +144,17 @@ def parse_kross_excel(
         missing = req - set(colmap.keys())
         raise ValueError(f"Colonne obbligatorie mancanti in {file_path}: {missing} — trovate: {list(raw.columns)}")
 
+    # --- normalizzazione dati ---
     df = pd.DataFrame()
     df["stay_date"] = _to_date(raw[colmap["stay_date"]])
     df["rooms_sold"] = _to_numeric(raw[colmap["rooms_sold"]])
     df["revenue_total"] = _to_numeric(raw[colmap["revenue_total"]])
+
     if "adr" in colmap:
         df["adr"] = _to_numeric(raw[colmap["adr"]])
     else:
         df["adr"] = _safe_div(df["revenue_total"], df["rooms_sold"])
+
     if "revpar" in colmap:
         df["revpar"] = _to_numeric(raw[colmap["revpar"]])
     else:
@@ -146,44 +168,3 @@ def parse_kross_excel(
 
     info = ParsedInfo(property=property_name, snapshot_date=snapshot_date, rows=len(df), source_path=file_path)
     return df[["property", "snapshot_date", "stay_date", "rooms_sold", "revenue_total", "adr", "revpar"]], info
-
-# --- HELPERS -----------------------------------------------------------------
-
-def _empty_frame(property_name: str, snapshot_date: Optional[datetime]) -> pd.DataFrame:
-    return pd.DataFrame(
-        columns=["property", "snapshot_date", "stay_date", "rooms_sold", "revenue_total", "adr", "revpar"]
-    )
-
-def _to_date(s: pd.Series) -> pd.Series:
-    # accetta str (YYYY-MM-DD o DD/MM/YYYY), datetime, Excel seriali
-    def _parse_one(x: Any):
-        if pd.isna(x):
-            return np.nan
-        # già datetime
-        if isinstance(x, (pd.Timestamp, datetime)):
-            return x.date()
-        # numerico (Excel seriale): lascia a pandas
-        try:
-            if isinstance(x, (int, float)) and not isinstance(x, bool):
-                return pd.to_datetime(x, unit="D", origin="1899-12-30", errors="coerce").date()
-        except Exception:
-            pass
-        # stringa
-        xs = str(x).strip()
-        # tenta ISO
-        dt = pd.to_datetime(xs, errors="coerce", dayfirst=False)
-        if pd.isna(dt):
-            # tenta dayfirst (es. 31/01/2025)
-            dt = pd.to_datetime(xs, errors="coerce", dayfirst=True)
-        return dt.date() if not pd.isna(dt) else np.nan
-
-    return s.map(_parse_one)
-
-def _to_numeric(s: pd.Series) -> pd.Series:
-    return pd.to_numeric(s, errors="coerce")
-
-def _safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
-    with np.errstate(divide="ignore", invalid="ignore"):
-        res = a / b
-    return res.replace([np.inf, -np.inf], np.nan)
-    
