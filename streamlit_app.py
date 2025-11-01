@@ -178,18 +178,36 @@ properties = sorted(df_all["property"].dropna().unique().tolist())
 
 st.sidebar.markdown("---")
 view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=0)
-if view_mode == "Singola struttura":
-    prop_view = st.sidebar.selectbox("Seleziona struttura per l'analisi", options=properties, index=0)
+if _current_vm == "Singola struttura":
+    _default_prop = st.session_state.get("prop_view", properties[0] if properties else None)
+    prop_view = st.sidebar.selectbox(
+        "Seleziona struttura per l'analisi",
+        options=properties,
+        index=(properties.index(_default_prop) if (_default_prop in properties) else 0) if properties else 0,
+        key="sb_prop_single",
+    )
     props_to_use = [prop_view]
 else:
-    props_to_use = st.sidebar.multiselect("Seleziona strutture da aggregare"
+    _default_multi = st.session_state.get("props_to_use", properties)
+    props_to_use = st.sidebar.multiselect(
+        "Seleziona strutture da aggregare",
+        options=properties,
+        default=_default_multi if _default_multi else [],
+        key="sb_prop_multi",
+    )
 
-st.sidebar.markdown('---')
-st.sidebar.header("Carica i dati")
-prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
-year_sel = st.sidebar.selectbox("Anno", options=YEARS, index=YEARS.index(today.year) if today.year in YEARS else 0)
+view_mode = st.sidebar.radio(
+    "Vista",
+    options=["Singola struttura", "Aggregata"],
+    index=(0 if _current_vm == "Singola struttura" else 1),
+    key="view_mode",
+)
 
-upl = st.sidebar.file_uploader(f"File {prop_sel} – {year_sel}", type=["xlsx"], key=f"uploader_{prop_sel}_{year_sel}")
+# aggiorna cache props quando cambia selezione
+st.session_state["prop_view"] = (
+    props_to_use[0] if isinstance(props_to_use, list) and props_to_use else st.session_state.get("prop_view")
+)
+st.session_state["props_to_use"] = props_to_use
 col_sb_a, col_sb_b = st.sidebar.columns(2)
 with col_sb_a:
     if st.button("Carica file selezionato", use_container_width=True):
