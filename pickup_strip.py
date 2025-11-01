@@ -50,6 +50,13 @@ def render_pickup_next_11_months(prop: str, ref_date: date | None = None) -> Non
     - ref_date: data 'oggi'; default = oggi (Europe/Rome lato server)
     """
     df_catalog = _catalog_df(BASE_DIR)
+    # --- guard contro catalogo vuoto/strutturato ---
+if df_catalog is None or df_catalog.empty or "property" not in df_catalog.columns:
+    st.markdown("### 📆 Pick-up — Prossimi 11 mesi")
+    st.info("Nessuno snapshot indicizzato. Carica i file in `/srv/ihosp/forecasts/<PROPERTY>/inbox/` "
+            "e attendi l’archiviazione notturna, poi ricarica la pagina.")
+    return
+    # --- fine guard ---
     fpath, snap_date = _last_snapshot_path_for(prop, df_catalog)
 
     st.markdown("### 📆 Pick-up — Prossimi 11 mesi")
