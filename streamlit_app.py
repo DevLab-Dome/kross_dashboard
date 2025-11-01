@@ -69,30 +69,18 @@ def _inject_sidebar_css():
 _inject_sidebar_css()
 
 # ---------------------------------------------------------------------
-# Baseline loader – robusto (CSV/Parquet/Excel) + path dinamici
+# Baseline loader – robusto (CSV/Parquet/Excel) + path /srv/ihosp/baseline
 # ---------------------------------------------------------------------
 import os, glob
 
-# Directory primaria configurabile via ENV (altrimenti default)
-_BASE_DIR = os.getenv("KROSS_BASELINE_DIR", "/opt/kross_dashboard_dev/data/baseline")
+# Radice baseline in VPS (rilevata): /srv/ihosp/baseline
+_BASE_DIR = "/srv/ihosp/baseline"
 
-# Lista di pattern da scandire (ordina per priorità)
+# Pattern da scandire (ricorsivi per sottocartelle Lavagnini/La_Terrazza)
 BASELINE_GLOBS = [
-    os.path.join(_BASE_DIR, "*.parquet"),
-    os.path.join(_BASE_DIR, "*.csv"),
-    os.path.join(_BASE_DIR, "*.xlsx"),
-    "/opt/kross_dashboard_dev/baseline/*.parquet",
-    "/opt/kross_dashboard_dev/baseline/*.csv",
-    "/opt/kross_dashboard_dev/baseline/*.xlsx",
-    "/opt/kross_dashboard_dev/data/*.parquet",
-    "/opt/kross_dashboard_dev/data/*.csv",
-    "/opt/kross_dashboard_dev/data/*.xlsx",
-    "data/baseline/*.parquet",
-    "data/baseline/*.csv",
-    "data/baseline/*.xlsx",
-    "baseline/*.parquet",
-    "baseline/*.csv",
-    "baseline/*.xlsx",
+    os.path.join(_BASE_DIR, "**", "*.parquet"),
+    os.path.join(_BASE_DIR, "**", "*.csv"),
+    os.path.join(_BASE_DIR, "**", "*.xlsx"),
 ]
 
 RENAME_MAP = {
@@ -112,39 +100,30 @@ def _load_baseline_files() -> pd.DataFrame:
     frames = []
     seen = set()
     for pat in BASELINE_GLOBS:
-        for path in glob.glob(pat):
-            # evita duplicati se lo stesso file matcha più pattern
+        for path in glob.glob(pat, recursive=True):
             if path in seen:
                 continue
             seen.add(path)
             try:
                 if path.endswith(".parquet"):
                     df = pd.read_parquet(path)
+                    if isinstance(df, pd.DataFrame) and not df.empty:
+                        frames.append(df)
+
                 elif path.endswith(".csv"):
                     df = pd.read_csv(path)
+                    if isinstance(df, pd.DataFrame) and not df.empty:
+                        frames.append(df)
+
                 elif path.endswith(".xlsx"):
-                    # prima sheet
-                    df = pd.read_excel(path, engine="openpyxl")
-                else:
-                    continue
-                if not isinstance(df, pd.DataFrame) or df.empty:
-                    continue
-
-                # normalizza nomi colonne (case-insensitive -> canonicali)
-                rename_ci = {}
-                for col in list(df.columns):
-                    if col in RENAME_MAP:
-                        rename_ci[col] = RENAME_MAP[col]
-                    else:
-                        low = str(col).lower()
-                        if low in RENAME_MAP:
-                            rename_ci[col] = RENAME_MAP[low]
-                if rename_ci:
-                    df = df.rename(columns=rename_ci)
-
-                frames.append(df)
+                    # Leggi TUTTI i fogli: sheet_name=None -> dict di DataFrame
+                    xl = pd.read_excel(path, sheet_name=None, engine="openpyxl")
+                    for _, df in (xl or {}).items():
+                        if isinstance(df, pd.DataFrame) and not df.empty:
+                            frames.append(df)
+                # altri formati: ignora
             except Exception:
-                # file non leggibile: ignora
+                # file non leggibile: ignora e continua
                 continue
 
     if not frames:
@@ -152,10 +131,29 @@ def _load_baseline_files() -> pd.DataFrame:
 
     base = pd.concat(frames, ignore_index=True)
 
+    # normalizza nomi colonne (case-insensitive -> canonici)
+    rename_ci = {}
+    for col in list(base.columns):
+        if col in RENAME_MAP:
+            rename_ci[col] = RENAME_MAP[col]
+        else:
+            low = str(col).lower()
+            if low in RENAME_MAP:
+                rename_ci[col] = RENAME_MAP[low]
+    if rename_ci:
+        base = base.rename(columns=rename_ci)
+
     # assicura colonne canoniche se presenti con nomi alternativi
     for src, dst in RENAME_MAP.items():
         if src in base.columns and dst not in base.columns:
             base[dst] = base[src]
+
+    # imposta 'property' usando il nome cartella (Lavagnini/La_Terrazza) se mancante
+    if "property" not in base.columns or base["property"].isna().all():
+        # prova a ricavare dai path; ricrea una colonna 'source_path' temporanea
+        # NOTA: per costruirla si rileggono i file con path; se non vogliamo rileggerli,
+        # richiedere in futuro una colonna 'property' nei file.
+        pass  # lascia neutro; se serve lo attiviamo nel prossimo step
 
     # tipi
     for col in ("year", "month"):
@@ -175,6 +173,19 @@ def _load_baseline_files() -> pd.DataFrame:
     return base
 
 def ensure_baseline_in_session() -> None:
+    """Carica baseline in sessione e popola l'elenco strutture, se non già presenti."""
+    if "baseline_df" not in st.session_state:
+        df = _load_baseline_files()
+        st.session_state["baseline_df"] = df if isinstance(df, pd.DataFrame) else pd.DataFrame()
+        props = (
+            st.session_state["baseline_df"]["property"]
+            .dropna().astype(str).sort_values().unique().tolist()
+            if "property" in st.session_state["baseline_df"].columns and not st.session_state["baseline_df"].empty
+            else []
+        )
+        st.session_state["properties"] = props
+# ---------------------------------------------------------------------
+
     """Carica baseline in sessione e popola l'elenco strutture, se non già presenti."""
     if "baseline_df" not in st.session_state:
         df = _load_baseline_files()
