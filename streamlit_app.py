@@ -69,19 +69,12 @@ def _inject_sidebar_css():
 _inject_sidebar_css()
 
 # ---------------------------------------------------------------------
-# Baseline loader – robusto (CSV/Parquet/Excel) + path /srv/ihosp/baseline
+# Baseline loader – DEFINITIVO: legge /srv/ihosp/baseline/** e imposta `property` dal nome cartella
 # ---------------------------------------------------------------------
 import os, glob
+from pathlib import Path
 
-# Radice baseline in VPS (rilevata): /srv/ihosp/baseline
 _BASE_DIR = "/srv/ihosp/baseline"
-
-# Pattern da scandire (ricorsivi per sottocartelle Lavagnini/La_Terrazza)
-BASELINE_GLOBS = [
-    os.path.join(_BASE_DIR, "**", "*.parquet"),
-    os.path.join(_BASE_DIR, "**", "*.csv"),
-    os.path.join(_BASE_DIR, "**", "*.xlsx"),
-]
 
 RENAME_MAP = {
     "Struttura": "property", "Proprietà": "property", "Hotel": "property",
@@ -95,35 +88,61 @@ RENAME_MAP = {
 }
 REQUIRED_COLS = {"property", "year", "month"}
 
+def _canonical_property_from_path(path: str) -> str:
+    # estrae la cartella immediatamente superiore al file: .../Lavagnini/file.xlsx -> Lavagnini
+    parent = os.path.basename(os.path.dirname(path)).strip()
+    # normalizza formati noti
+    aliases = {
+        "lavagnini": "Lavagnini",
+        "la_terrazza": "La Terrazza",
+        "laterrazza": "La Terrazza",
+        "la-terrazza": "La Terrazza",
+    }
+    key = parent.lower().replace(" ", "_")
+    return aliases.get(key, parent or "Unknown")
+
 @st.cache_data(show_spinner=False)
 def _load_baseline_files() -> pd.DataFrame:
     frames = []
+    patterns = [
+        os.path.join(_BASE_DIR, "**", "*.parquet"),
+        os.path.join(_BASE_DIR, "**", "*.csv"),
+        os.path.join(_BASE_DIR, "**", "*.xlsx"),
+    ]
     seen = set()
-    for pat in BASELINE_GLOBS:
+
+    for pat in patterns:
         for path in glob.glob(pat, recursive=True):
-            if path in seen:
+            if path in seen: 
                 continue
             seen.add(path)
+
+            prop = _canonical_property_from_path(path)
             try:
                 if path.endswith(".parquet"):
                     df = pd.read_parquet(path)
                     if isinstance(df, pd.DataFrame) and not df.empty:
+                        if "property" not in df.columns or df["property"].isna().all():
+                            df["property"] = prop
                         frames.append(df)
 
                 elif path.endswith(".csv"):
                     df = pd.read_csv(path)
                     if isinstance(df, pd.DataFrame) and not df.empty:
+                        if "property" not in df.columns or df["property"].isna().all():
+                            df["property"] = prop
                         frames.append(df)
 
                 elif path.endswith(".xlsx"):
-                    # Leggi TUTTI i fogli: sheet_name=None -> dict di DataFrame
-                    xl = pd.read_excel(path, sheet_name=None, engine="openpyxl")
-                    for _, df in (xl or {}).items():
+                    # leggi TUTTI i fogli; per ciascuno imposta property se manca
+                    xls = pd.read_excel(path, sheet_name=None, engine="openpyxl")
+                    for _, df in (xls or {}).items():
                         if isinstance(df, pd.DataFrame) and not df.empty:
+                            if "property" not in df.columns or df["property"].isna().all():
+                                df["property"] = prop
                             frames.append(df)
                 # altri formati: ignora
             except Exception:
-                # file non leggibile: ignora e continua
                 continue
 
     if not frames:
@@ -143,19 +162,12 @@ def _load_baseline_files() -> pd.DataFrame:
     if rename_ci:
         base = base.rename(columns=rename_ci)
 
-    # assicura colonne canoniche se presenti con nomi alternativi
+    # assicurati colonne canoniche se presenti con nomi alternativi
     for src, dst in RENAME_MAP.items():
         if src in base.columns and dst not in base.columns:
             base[dst] = base[src]
 
-    # imposta 'property' usando il nome cartella (Lavagnini/La_Terrazza) se mancante
-    if "property" not in base.columns or base["property"].isna().all():
-        # prova a ricavare dai path; ricrea una colonna 'source_path' temporanea
-        # NOTA: per costruirla si rileggono i file con path; se non vogliamo rileggerli,
-        # richiedere in futuro una colonna 'property' nei file.
-        pass  # lascia neutro; se serve lo attiviamo nel prossimo step
-
-    # tipi
+    # tipi numerici
     for col in ("year", "month"):
         if col in base.columns:
             base[col] = pd.to_numeric(base[col], errors="coerce").astype("Int64")
@@ -170,9 +182,23 @@ def _load_baseline_files() -> pd.DataFrame:
     # pulizia property
     base["property"] = base["property"].astype(str).str.strip()
     base = base.dropna(subset=list(REQUIRED_COLS))
+
     return base
 
 def ensure_baseline_in_session() -> None:
+    """Carica baseline in sessione e popola l'elenco strutture, se non già presenti."""
+    if "baseline_df" not in st.session_state:
+        df = _load_baseline_files()
+        st.session_state["baseline_df"] = df if isinstance(df, pd.DataFrame) else pd.DataFrame()
+        props = (
+            st.session_state["baseline_df"]["property"]
+            .dropna().astype(str).sort_values().unique().tolist()
+            if "property" in st.session_state["baseline_df"].columns and not st.session_state["baseline_df"].empty
+            else []
+        )
+        st.session_state["properties"] = props
+# ---------------------------------------------------------------------
+
     """Carica baseline in sessione e popola l'elenco strutture, se non già presenti."""
     if "baseline_df" not in st.session_state:
         df = _load_baseline_files()
