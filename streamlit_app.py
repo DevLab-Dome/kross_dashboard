@@ -9,6 +9,109 @@ from typing import List
 import pandas as pd
 import streamlit as st
 
+# ===== BASELINE LOADER (tollerante) =====
+import os, glob
+import pandas as pd
+import streamlit as st
+
+BASELINE_GLOBS = [
+    "/opt/kross_dashboard_dev/data/baseline/*.parquet",
+    "/opt/kross_dashboard_dev/data/baseline/*.csv",
+    "data/baseline/*.parquet",
+    "data/baseline/*.csv",
+    "baseline/*.parquet",
+    "baseline/*.csv",
+]
+
+RENAME_MAP = {
+    "Struttura": "property",
+    "Proprietà": "property",
+    "Hotel": "property",
+    "Anno": "year",
+    "Mese": "month",
+    "Totale revenue": "revenue_total",
+    "Notti vendute": "rooms_sold",
+    "ADR": "adr",
+    "RevPAR": "revpar",
+}
+
+REQUIRED_COLS = {"property", "year", "month"}
+
+@st.cache_data(show_spinner=False)
+def _load_baseline_files() -> pd.DataFrame:
+    frames = []
+    for pat in BASELINE_GLOBS:
+        for path in glob.glob(pat):
+            try:
+                if path.endswith(".parquet"):
+                    df = pd.read_parquet(path)
+                else:
+                    df = pd.read_csv(path)
+                if not isinstance(df, pd.DataFrame) or df.empty:
+                    continue
+                # normalizza colonne
+                cols_lower = {c.lower(): c for c in df.columns}
+                # rinomina da mappa (se presenti)
+                ren = {src: RENAME_MAP[src] for src in RENAME_MAP if src in df.columns}
+                if ren:
+                    df = df.rename(columns=ren)
+                # se le chiavi base non ci sono in chiaro, prova in lower
+                if not REQUIRED_COLS.issubset(set(df.columns)):
+                    # tenta da lower-case
+                    if {"property","year","month"}.issubset(set(k.lower() for k in df.columns)):
+                        df.columns = [RENAME_MAP.get(c, c) for c in df.columns]
+                frames.append(df)
+            except Exception:
+                # passa oltre file malformati
+                continue
+
+    if not frames:
+        return pd.DataFrame()
+
+    base = pd.concat(frames, ignore_index=True)
+
+    # assicurati delle colonne minime
+    for src, dst in RENAME_MAP.items():
+        if src in base.columns and dst not in base.columns:
+            base[dst] = base[src]
+
+    # enforce tipi
+    for col in ("year", "month"):
+        if col in base.columns:
+            base[col] = pd.to_numeric(base[col], errors="coerce").astype("Int64")
+
+    # colonne KPI opzionali → numeric
+    for col in ("revenue_total", "rooms_sold", "adr", "revpar"):
+        if col in base.columns:
+            base[col] = pd.to_numeric(base[col], errors="coerce")
+
+    # filtra righe valide
+    if REQUIRED_COLS.issubset(set(base.columns)):
+        base = base.dropna(subset=list(REQUIRED_COLS))
+    else:
+        # schema non valido
+        return pd.DataFrame()
+
+    return base
+
+
+def ensure_baseline_in_session() -> None:
+    """Carica baseline in sessione se mancante, e popola la lista strutture."""
+    if "baseline_df" not in st.session_state:
+        df = _load_baseline_files()
+        if df is None or df.empty:
+            st.session_state["baseline_df"] = pd.DataFrame()
+            st.session_state["properties"] = []
+            return
+        st.session_state["baseline_df"] = df
+        # elenco strutture
+        props = (
+            df["property"].dropna().astype(str).sort_values().unique().tolist()
+            if "property" in df.columns else []
+        )
+        st.session_state["properties"] = props
+# ===== FINE BASELINE LOADER =====
+
 # ---------------------------------------------------------------------
 # Safe optional imports (do not crash if helper modules are missing)
 # ---------------------------------------------------------------------
@@ -123,13 +226,55 @@ st.sidebar.button("Svuota caricamenti", use_container_width=True)
 # Main – show KPIs from baseline if present
 # ---------------------------------------------------------------------
 if BASELINE_ALL is None or BASELINE_ALL.empty:
+    # ---- Bootstrap dati baseline in sessione ----
+ensure_baseline_in_session()
+base_df: pd.DataFrame = st.session_state.get("baseline_df", pd.DataFrame())
+properties = st.session_state.get("properties", [])
+
+# Sidebar — Seleziona struttura per l'analisi
+st.sidebar.subheader("Vista")
+sel_props = st.sidebar.multiselect(
+    "Seleziona struttura per l'analisi",
+    options=properties,
+    default=(properties[:1] if properties else []),
+)
+
+# Se il baseline è vuoto, mostra un avviso ma NON interrompere la app
+if base_df.empty or not properties:
     st.warning("Baseline non trovato o vuoto: impossibile popolare la dashboard.")
     st.stop()
 
+# Vista (singola/aggregata)
+vista = st.sidebar.radio("Vista", ["Singola struttura", "Aggregata"], index=0)
+
+# Costruisci df_view a partire dal baseline + selezione
+if sel_props:
+    df_view = base_df[base_df["property"].isin(sel_props)].copy()
+else:
+    # se non selezionato nulla, usa tutte le strutture
+    df_view = base_df.copy()
+
+# Se serve, calcola anno/mese attivi da df_view
+if "year" in df_view.columns and not df_view.empty:
+    active_y = int(pd.Series(df_view["year"]).dropna().max())
+else:
+    active_y = pd.Timestamp.today().year
+
+if "month" in df_view.columns and not df_view.empty:
+    active_m = int(pd.Series(df_view["month"]).dropna().max())
+else:
+    active_m = pd.Timestamp.today().month
 # determine active property (singola vista uses the first selected)
-if view_mode == "Singola struttura":
-    if not sel_props:
+if vista == "Singola struttura":
+    if not sel_props and properties:
+        # fallback: seleziona automaticamente la prima struttura disponibile
+        sel_props = [properties[0]]
+    elif not sel_props:
         st.warning("Seleziona almeno una struttura.")
+        st.stop()
+
+# props effettive da usare nel filtro dati
+active_props = sel_props if vista == "Aggregata" else sel_props[:1]
         st.stop()
     active_prop = sel_props[0]
     df_view = BASELINE_ALL[BASELINE_ALL["property"] == active_prop].copy()
