@@ -1,6 +1,6 @@
 # forecast_parser_kross.py
-# Parser robusto per export Kross (IT) con fallback CSV se il file .xlsx non è un vero Excel.
-# Output standardizzato:
+# Parser robusto per export Kross (IT) con fallback CSV.
+# Output standard:
 #   [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
 
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ import re
 from datetime import datetime
 from zipfile import BadZipFile
 
-# ---- MAPPING COLONNE (case-insensitive, spazi normalizzati) -----------------
+# -------------------- MAPPING COLONNE (case-insensitive) ---------------------
 
 COLUMN_ALIASES: Dict[str, list] = {
     "stay_date": ["data", "giorno", "date"],
@@ -25,7 +25,6 @@ COLUMN_ALIASES: Dict[str, list] = {
 def _norm(s: str) -> str:
     s = str(s).strip().lower()
     s = re.sub(r"\s+", " ", s)
-    # rimuovi accenti comuni
     return s.translate(str.maketrans("àèéìòóù", "aeeioou"))
 
 def _match_columns(df: pd.DataFrame) -> Dict[str, str]:
@@ -33,12 +32,13 @@ def _match_columns(df: pd.DataFrame) -> Dict[str, str]:
     resolved: Dict[str, str] = {}
     for key, aliases in COLUMN_ALIASES.items():
         for alias in aliases:
-            if _norm(alias) in norm_map:
-                resolved[key] = norm_map[_norm(alias)]
+            n = _norm(alias)
+            if n in norm_map:
+                resolved[key] = norm_map[n]
                 break
     return resolved
 
-# ---- DATACLASS DI SUPPORTO --------------------------------------------------
+# -------------------------- DATACLASS DI SUPPORTO ----------------------------
 
 @dataclass(frozen=True)
 class ParsedInfo:
@@ -47,7 +47,7 @@ class ParsedInfo:
     rows: int
     source_path: str
 
-# ---- HELPERS ----------------------------------------------------------------
+# --------------------------------- HELPERS -----------------------------------
 
 def _empty_frame(property_name: str, snapshot_date: Optional[datetime]) -> pd.DataFrame:
     return pd.DataFrame(
@@ -60,7 +60,6 @@ def _to_date(s: pd.Series) -> pd.Series:
             return np.nan
         if isinstance(x, (pd.Timestamp, datetime)):
             return x.date()
-        # Excel serial (approssimazione comune)
         if isinstance(x, (int, float)) and not isinstance(x, bool):
             dt = pd.to_datetime(x, unit="D", origin="1899-12-30", errors="coerce")
             return dt.date() if not pd.isna(dt) else np.nan
@@ -79,7 +78,7 @@ def _safe_div(a: pd.Series, b: pd.Series) -> pd.Series:
         r = a / b
     return r.replace([np.inf, -np.inf], np.nan)
 
-# ---- FUNZIONE PRINCIPALE ----------------------------------------------------
+# ------------------------------ FUNZIONE MAIN --------------------------------
 
 def parse_kross_excel(
     file_path: str,
@@ -90,10 +89,10 @@ def parse_kross_excel(
     """
     Legge un export Kross (.xlsx reale o CSV mascherato) e restituisce colonne canoniche:
       [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
-    Se il file .xlsx non è un vero Excel, usa fallback CSV (auto-sep, poi ';').
+    Fallback CSV automatico se il file .xlsx non è un vero Excel.
     """
 
-    # --- inferenze dal path: property e snapshot_date ---
+    # --- inferenze dal path ---
     if property_name is None:
         parts = os.path.normpath(file_path).split(os.sep)
         prop = None
@@ -127,7 +126,7 @@ def parse_kross_excel(
         raw = xl.parse(sh)
     except (BadZipFile, ValueError, FileNotFoundError):
         try:
-            raw = pd.read_csv(file_path, sep=None, engine="python")
+            raw = pd.read_csv(file_path, sep=None, engine="python")  # autodetect
         except Exception:
             try:
                 raw = pd.read_csv(file_path, sep=";")
