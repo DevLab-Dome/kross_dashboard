@@ -57,6 +57,22 @@ def render_pickup_next_11_months(prop: str, ref_date: Optional[date] = None) -> 
         st.info("Nessuno snapshot indicizzato. Carica i file in `/srv/ihosp/forecasts/<PROPERTY>/inbox/` "
                 "e attendi l'archiviazione notturna, poi ricarica la pagina.")
         return
+        # se la property passata non esiste nel catalogo, usa la prima disponibile
+catalog_props = sorted(df_catalog["property"].dropna().unique().tolist())
+if not catalog_props:
+    st.info("Nessuno snapshot indicizzato.")
+    return
+
+if prop not in catalog_props:
+    # prova un mapping semplice da label a key
+    low = str(prop).lower()
+    guess = None
+    for p in catalog_props:
+        if p.lower() in low or low in p.lower():
+            guess = p
+            break
+    prop = guess or catalog_props[0]
+    st.caption(f"(Property selezionata non presente nel catalogo; uso **{prop}**)")
 
     st.markdown("### Pick-up — Prossimi 11 mesi")
 
