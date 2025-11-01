@@ -132,48 +132,7 @@ st.session_state.setdefault("datasets", {})
 PROPERTIES = ["Lavagnini My Place", "La Terrazza di Jenny"]
 YEARS = [2024, 2025]
 
-# -----------------------------------------------------------------------------
-# SIDEBAR: Selettori + Uploader
-# -----------------------------------------------------------------------------
-st.sidebar.header("Carica i dati")
-prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
-year_sel = st.sidebar.selectbox("Anno", options=YEARS, index=YEARS.index(today.year) if today.year in YEARS else 0)
 
-upl = st.sidebar.file_uploader(f"File {prop_sel} – {year_sel}", type=["xlsx"], key=f"uploader_{prop_sel}_{year_sel}")
-col_sb_a, col_sb_b = st.sidebar.columns(2)
-with col_sb_a:
-    if st.button("Carica file selezionato", use_container_width=True):
-        if upl is None:
-            st.sidebar.warning("Seleziona un file prima di caricare.")
-        else:
-            data = upl.read()
-            df = normalize_wide_excel(io.BytesIO(data), CFG, prop_sel)
-            df = df[df["year"] == year_sel].copy()
-            st.session_state["datasets"][(prop_sel, year_sel)] = df
-            st.sidebar.success(f"Caricato: {prop_sel} – {year_sel} ({len(df)} righe)")
-with col_sb_b:
-    SHOW_DEMO = True
-    if SHOW_DEMO and st.button("Usa file demo", use_container_width=True):
-        demo_map = {
-            ("Lavagnini My Place", 2024): "/mnt/data/Lavagnini_Forecast_01012024_31122024.xlsx",
-            ("Lavagnini My Place", 2025): "/mnt/data/Lavagnini_Forecast_01012025_31122025.xlsx",
-            ("La Terrazza di Jenny", 2024): "/mnt/data/La_Terrazza_Forecast_01092024_31122024.xlsx",
-            ("La Terrazza di Jenny", 2025): "/mnt/data/La_Terrazza_Forecast_01012025_31122025.xlsx",
-        }
-        path = demo_map.get((prop_sel, year_sel))
-        if path and os.path.exists(path):
-            with open(path, "rb") as f:
-                df = normalize_wide_excel(io.BytesIO(f.read()), CFG, prop_sel)
-            df = df[df["year"] == year_sel].copy()
-            st.session_state["datasets"][(prop_sel, year_sel)] = df
-            st.sidebar.success(f"Demo caricata: {prop_sel} – {year_sel} ({len(df)} righe)")
-        else:
-            st.sidebar.warning("Demo non disponibile per la combinazione scelta.")
-
-st.sidebar.markdown("---")
-if st.sidebar.button("Svuota caricamenti"):
-    st.session_state["datasets"].clear()
-    st.sidebar.info("Archivio file svuotato.")
 
 # -----------------------------------------------------------------------------
 # ASSEMBLA DF GLOBALE
@@ -212,17 +171,29 @@ df_all = pd.concat(st.session_state["datasets"].values(), ignore_index=True)
 properties = sorted(df_all["property"].dropna().unique().tolist())
 
 st.sidebar.markdown("---")
-view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=0)
-if view_mode == "Singola struttura":
-    prop_view = st.sidebar.selectbox("Seleziona struttura per l'analisi", options=properties, index=0)
+# ======= VISTA (ora seconda sezione) =======
+# Prima: Seleziona struttura per l'analisi
+# Poi: Vista (Singola/Aggregata)
+# Nota: usiamo session_state per ricordare la scelta della vista
+st.session_state.setdefault("view_mode", "Singola struttura")
+_current_vm = st.session_state["view_mode"]
+
+if _current_vm == "Singola struttura":
+    _default_prop = st.session_state.get("prop_view", properties[0] if properties else None)
+    prop_view = st.sidebar.selectbox("Seleziona struttura per l'analisi", options=properties, index=(properties.index(_default_prop) if (_default_prop in properties) else 0), key="sb_prop_single")
     props_to_use = [prop_view]
 else:
-    props_to_use = st.sidebar.multiselect("Seleziona strutture da aggregare", options=properties, default=properties)
+    _default_multi = st.session_state.get("props_to_use", properties)
+    props_to_use = st.sidebar.multiselect("Seleziona struttura per l'analisi", options=properties, default=_default_multi, key="sb_prop_multi")
+
+view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=(0 if _current_vm == "Singola struttura" else 1), key="view_mode")
+# aggiorna cache props quando cambia selezione
+st.session_state["prop_view"] = props_to_use[0] if isinstance(props_to_use, list) and props_to_use else st.session_state.get("prop_view")
+st.session_state["props_to_use"] = props_to_use
 
 df_view = df_all[df_all["property"].isin(props_to_use)].copy()
 if df_view.empty:
     st.warning("Nessun dato per la selezione corrente."); st.stop()
-
 # -----------------------------------------------------------------------------
 # NAV UTILS MESE
 # -----------------------------------------------------------------------------
@@ -275,7 +246,51 @@ def _first_mean(df: pd.DataFrame, cands: list[str]) -> float:
             if pd.notna(v): return float(v)
     return 0.0
 
-def _rooms_avail_fallback(df_month_like: pd.DataFrame, year: int, month: int) -> float:
+def _roo
+
+# -----------------------------------------------------------------------------
+# SIDEBAR: Selettori + Uploader
+# -----------------------------------------------------------------------------
+st.sidebar.header("Carica i dati")
+prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
+year_sel = st.sidebar.selectbox("Anno", options=YEARS, index=YEARS.index(today.year) if today.year in YEARS else 0)
+
+upl = st.sidebar.file_uploader(f"File {prop_sel} – {year_sel}", type=["xlsx"], key=f"uploader_{prop_sel}_{year_sel}")
+col_sb_a, col_sb_b = st.sidebar.columns(2)
+with col_sb_a:
+    if st.button("Carica file selezionato", use_container_width=True):
+        if upl is None:
+            st.sidebar.warning("Seleziona un file prima di caricare.")
+        else:
+            data = upl.read()
+            df = normalize_wide_excel(io.BytesIO(data), CFG, prop_sel)
+            df = df[df["year"] == year_sel].copy()
+            st.session_state["datasets"][(prop_sel, year_sel)] = df
+            st.sidebar.success(f"Caricato: {prop_sel} – {year_sel} ({len(df)} righe)")
+with col_sb_b:
+    SHOW_DEMO = True
+    if SHOW_DEMO and st.button("Usa file demo", use_container_width=True):
+        demo_map = {
+            ("Lavagnini My Place", 2024): "/mnt/data/Lavagnini_Forecast_01012024_31122024.xlsx",
+            ("Lavagnini My Place", 2025): "/mnt/data/Lavagnini_Forecast_01012025_31122025.xlsx",
+            ("La Terrazza di Jenny", 2024): "/mnt/data/La_Terrazza_Forecast_01092024_31122024.xlsx",
+            ("La Terrazza di Jenny", 2025): "/mnt/data/La_Terrazza_Forecast_01012025_31122025.xlsx",
+        }
+        path = demo_map.get((prop_sel, year_sel))
+        if path and os.path.exists(path):
+            with open(path, "rb") as f:
+                df = normalize_wide_excel(io.BytesIO(f.read()), CFG, prop_sel)
+            df = df[df["year"] == year_sel].copy()
+            st.session_state["datasets"][(prop_sel, year_sel)] = df
+            st.sidebar.success(f"Demo caricata: {prop_sel} – {year_sel} ({len(df)} righe)")
+        else:
+            st.sidebar.warning("Demo non disponibile per la combinazione scelta.")
+
+st.sidebar.markdown("---")
+if st.sidebar.button("Svuota caricamenti"):
+    st.session_state["datasets"].clear()
+    st.sidebar.info("Archivio file svuotato.")
+ms_avail_fallback(df_month_like: pd.DataFrame, year: int, month: int) -> float:
     """Se mancano 'rooms_available', calcola: camere_per_struttura × giorni_del_mese, sommato sulle strutture presenti."""
     if df_month_like is None or df_month_like.empty: 
         return 0.0
