@@ -711,6 +711,27 @@ if yhdr.get("next_clicked"):
     st.rerun()
 # === STRISCIA DATI – ANNO (riuso del renderer MESE per allineamento pixel-perfect) ===
 # === STRISCIA DATI – ANNO (riuso renderer MESE) ===
+# --- FALLBACK BASELINE: se df_view è vuoto, usa i baseline/storici ---
+try:
+    _label_prop = struttura_sel
+except NameError:
+    _label_prop = st.session_state.get("struttura_sel") or st.session_state.get("selected_property") or "Lavagnini"
+
+_lab = str(_label_prop).lower()
+if "lavagnini" in _lab:
+    _prop_key = "Lavagnini"
+elif "terrazza" in _lab:
+    _prop_key = "La_Terrazza"
+else:
+    _prop_key = _label_prop
+
+if (df_view is None) or (getattr(df_view, "empty", True)):
+    _df_year = get_year_data(BASELINE_ALL, _prop_key, int(active_y))
+    if _df_year is not None and not _df_year.empty:
+        # df_view deve avere le colonne attese dal calcolo anno
+        df_view = _df_year[["stay_date", "rooms_sold", "revenue_total", "adr", "revpar"]].copy()
+        df_view["stay_date"] = pd.to_datetime(df_view["stay_date"])
+# --- FINE FALLBACK BASELINE ---
 kpi_year, deltas_year = _compute_year_kpis(df_view, active_y)
 render_month_kpis_1547(kpi_year, deltas_year)
 hdr = render_month_header_1547(
