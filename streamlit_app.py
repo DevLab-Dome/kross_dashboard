@@ -649,6 +649,63 @@ if hdr.get("prev_clicked"): go_prev(); st.rerun()
 if hdr.get("next_clicked"): go_next(); st.rerun()
 
 render_month_kpis_1547(kpi_header, deltas_header)
+# === BASELINE · POPOLAMENTO ANNO / MESE (fallback se le sezioni native sono vuote) ===
+# Determina la property 'tecnica' per le cartelle baseline
+try:
+    label_prop = struttura_sel  # la tua select struttura, se esiste
+except NameError:
+    label_prop = st.session_state.get("struttura_sel") or st.session_state.get("selected_property") or ""
+
+lab = str(label_prop).lower()
+if "lavagnini" in lab:
+    prop_key = "Lavagnini"
+elif "terrazza" in lab:
+    prop_key = "La_Terrazza"
+else:
+    # se la label non combacia, usa la prima property presente nei baseline
+    props_found = sorted(BASELINE_ALL["property"].unique().tolist()) if BASELINE_ALL is not None and not BASELINE_ALL.empty else []
+    prop_key = props_found[0] if props_found else "Lavagnini"
+
+# Anno attivo (usa la tua variabile se presente, altrimenti l'anno corrente)
+try:
+    year_sel = int(active_y)
+except Exception:
+    year_sel = int(st.session_state.get("active_y") or datetime.now().year)
+
+# Carica dati ANNO (baseline o history) per property/year
+df_year = get_year_data(BASELINE_ALL, prop_key, year_sel)
+
+if df_year is not None and not df_year.empty:
+    # KPI annuali (somma/medie sul dataset baseline)
+    total_rev = float(df_year["revenue_total"].sum())
+    total_rooms = int(df_year["rooms_sold"].sum())
+    mean_adr = float(pd.to_numeric(df_year["adr"], errors="coerce").mean())
+    mean_revpar = float(pd.to_numeric(df_year["revpar"], errors="coerce").mean())
+
+    st.markdown(f"## 📅 Anno {year_sel} — baseline ({prop_key})")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Revenue anno (baseline)", f"€ {total_rev:,.2f}".replace(",", "."))
+    c2.metric("Notti vendute anno", f"{total_rooms}")
+    c3.metric("ADR medio anno", f"€ {mean_adr:.2f}")
+    c4.metric("RevPAR medio anno", f"€ {mean_revpar:.2f}")
+
+    # KPI MENSILI dal baseline
+    st.markdown("### 📊 Mese — baseline")
+    mm = monthly_kpi(df_year)
+    st.dataframe(
+        mm.rename(columns={
+            "month": "Mese",
+            "revenue_total": "Revenue",
+            "rooms_sold": "Notti vendute",
+            "adr": "ADR medio",
+            "revpar": "RevPAR medio",
+        }),
+        use_container_width=True,
+        hide_index=True,
+    )
+else:
+    st.info(f"Nessun baseline per **{prop_key}** anno **{year_sel}**. Carica i file in `/srv/ihosp/baseline/{prop_key}/`.")
+# === FINE BASELINE FALLBACK ===
 
 # --- Pick-up: prossimi 11 mesi (usa l’ultimo snapshot disponibile) ---
 try:
