@@ -180,37 +180,23 @@ def _compute_year_kpis(df: pd.DataFrame, year: int):
     }
     return {"revenue":revenue,"occ":occ,"nights":nights,"adr":adr,"revpar":revpar}, deltas
 
-def _kpi_cell(label: str, value: str, delta: float):
-cls = "up" if delta >= 0 else "down"
-sign = "+" if delta >= 0 else ""
-pill = f'<span class="kpi-pill {cls}">{sign}{delta:,.2f}</span>'
-st.markdown(f"**{label}**  \n{value}  \n{pill}", unsafe_allow_html=True)
+def _kpi_cell(label: str, value: str, delta: float | None):
+    # Render di una cella KPI con pillola verde/rossa
+    cls = "up" if (delta is not None and delta >= 0) else "down"
+    sign = "+" if (delta is not None and delta >= 0) else ""
+    pill = "" if delta is None else f'<span class="kpi-pill {cls}">{sign}{delta:,.2f}</span>'
+    st.markdown(f"**{label}**  \n{value}  \n{pill}", unsafe_allow_html=True)
 
 # YEAR KPIs
 k_year, d_year = _compute_year_kpis(df_view, active_y)
 c1, c2, c3, c4, c5 = st.columns(5)
 with c1: _kpi_cell("Revenue anno", _fmt_eur(k_year["revenue"]), d_year["revenue"])
 with c2: _kpi_cell("Occupazione", f"{k_year['occ']:.2f}%", d_year["occ"])
-with c3: _kpi_cell("Notti vendute", f"{k_year['nights']:,}".replace(",", "."), float(d_year["nights"]))
+with c3: _kpi_cell("Notti vendute", f"{k_year['nights']:,}".replace(",", "."), float(d_year["nights"]) if d_year["nights"] is not None else None)
 with c4: _kpi_cell("ADR medio", _fmt_eur(k_year["adr"]), d_year["adr"])
 with c5: _kpi_cell("RevPAR medio", _fmt_eur(k_year["revpar"]), d_year["revpar"])
 
 # month header
-def _nav_month_label(y,m):
+def _nav_month_label(y, m):
     months = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
     return f"{months[m-1]} {y}"
-
-st.subheader(_nav_month_label(active_y, active_m))
-df_curr = df_view[(df_view["year"]==active_y) & (df_view["month"]==active_m)]
-if df_curr.empty:
-    st.info("Nessun dato nel mese corrente nei baseline.")
-else:
-    rev = float(df_curr["revenue_total"].sum()) if "revenue_total" in df_curr else 0.0
-    rooms = int(df_curr["rooms_sold"].sum()) if "rooms_sold" in df_curr else 0
-    adr = float(pd.to_numeric(df_curr["adr"], errors="coerce").mean()) if "adr" in df_curr else 0.0
-    revpar = float(pd.to_numeric(df_curr["revpar"], errors="coerce").mean()) if "revpar" in df_curr else 0.0
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric("Revenue mese", _fmt_eur(rev))
-    with c2: st.metric("Notti vendute", f"{rooms:,}".replace(",", "."))
-    with c3: st.metric("ADR medio", _fmt_eur(adr))
-    with c4: st.metric("RevPAR medio", _fmt_eur(revpar))
