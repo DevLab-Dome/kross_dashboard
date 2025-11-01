@@ -45,41 +45,45 @@ def _last_snapshot_path_for(prop: str, df_catalog: pd.DataFrame) -> Tuple[Option
 
 def render_pickup_next_11_months(prop: str, ref_date: Optional[date] = None) -> None:
     """
-    Renderizza la strip 'Prossimi 11 mesi' con KPI (Revenue, Rooms, ADR, RevPAR) aggregati per mese di soggiorno.
+    Strip 'Prossimi 11 mesi' con KPI aggregati usando l'ULTIMO snapshot disponibile.
     - prop: nome property (cartella storage)
     - ref_date: data "oggi"; default = oggi (Europe/Rome lato server)
     """
     df_catalog = _catalog_df(BASE_DIR)
 
-    # guard contro catalogo vuoto/strutturato
+    st.markdown("### Pick-up — Prossimi 11 mesi")
+
+    # Guard contro catalogo vuoto/strutturato
     if df_catalog is None or df_catalog.empty or "property" not in df_catalog.columns:
-        st.markdown("### Pick-up — Prossimi 11 mesi")
         st.info("Nessuno snapshot indicizzato. Carica i file in `/srv/ihosp/forecasts/<PROPERTY>/inbox/` "
                 "e attendi l'archiviazione notturna, poi ricarica la pagina.")
         return
-        # se la property passata non esiste nel catalogo, usa la prima disponibile
-catalog_props = sorted(df_catalog["property"].dropna().unique().tolist())
-if not catalog_props:
-    st.info("Nessuno snapshot indicizzato.")
-    return
 
-if prop not in catalog_props:
-    # prova un mapping semplice da label a key
-    low = str(prop).lower()
-    guess = None
-    for p in catalog_props:
-        if p.lower() in low or low in p.lower():
-            guess = p
-            break
-    prop = guess or catalog_props[0]
-    st.caption(f"(Property selezionata non presente nel catalogo; uso **{prop}**)")
+    # Se la property passata non esiste nel catalogo, usa la prima disponibile (con tentativo di mapping)
+    catalog_props = sorted(df_catalog["property"].dropna().unique().tolist())
+    if not catalog_props:
+        st.info("Nessuno snapshot indicizzato.")
+        return
 
-    st.markdown("### Pick-up — Prossimi 11 mesi")
+    if prop not in catalog_props:
+        low = str(prop).lower()
+        guess = None
+        for p in catalog_props:
+            if p.lower() in low or low in p.lower():
+                guess = p
+                break
+        prop = guess or catalog_props[0]
+        st.caption(f"(Property selezionata non presente nel catalogo; uso **{prop}**)")
 
-    fpath, snap_date = _last_snapshot_path_for(prop, df_catalog)
-    if not fpath or not snap_date:
+    # Ultimo snapshot per la property
+    q = df_catalog[df_catalog["property"] == prop]
+    q = q.sort_values(["snapshot_date", "file_name"]).tail(1)
+    if q.empty:
         st.info("Nessuno snapshot archiviato per questa property.")
         return
+
+    fpath = q.iloc[0]["file_path"]
+    snap_date = pd.to_datetime(q.iloc[0]["snapshot_date"]).date()
 
     today = ref_date or date.today()
     df = _parse_snapshot(fpath, prop, datetime.combine(snap_date, datetime.min.time()))
@@ -104,11 +108,11 @@ if prop not in catalog_props:
     ).sort_values("month")
 
     # KPI headline (sommatoria 11 mesi)
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Revenue (11 mesi)", f"€ {agg['revenue_total'].sum():,.2f}".replace(",", "."))
-    col2.metric("Notti vendute (11 mesi)", f"{int(agg['rooms_sold'].sum())}")
-    col3.metric("ADR medio", f"€ {agg['adr'].mean():.2f}")
-    col4.metric("RevPAR medio", f"€ {agg['revpar'].mean():.2f}")
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Revenue (11 mesi)", f"€ {agg['revenue_total'].sum():,.2f}".replace(",", "."))
+    c2.metric("Notti vendute (11 mesi)", f"{int(agg['rooms_sold'].sum())}")
+    c3.metric("ADR medio", f"€ {agg['adr'].mean():.2f}")
+    c4.metric("RevPAR medio", f"€ {agg['revpar'].mean():.2f}")
 
     # Tabella mensile
     table = agg.rename(columns={
@@ -120,5 +124,7 @@ if prop not in catalog_props:
     })
     st.dataframe(table, use_container_width=True, hide_index=True)
 
-    st.caption(f"Snapshot usato: {snap_date} · File: `{os.path.basename(fpath)}` · "
-               f"Finestra: {start.date()} → {end.date()}")
+    st.caption(
+        f"Snapshot usato: {snap_date} · File: `{os.path.basename(fpath)}` · "
+        f"Finestra: {start.date()} → {end.date()}"
+    )
