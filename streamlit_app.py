@@ -247,21 +247,26 @@ if base_df.empty or not properties:
 # Vista (singola/aggregata)
 vista = st.sidebar.radio("Vista", ["Singola struttura", "Aggregata"], index=0)
 
-# Costruisci df_view a partire dal baseline + selezione
+# ---- Costruisci il sottoinsieme dati da baseline in base alla selezione ----
 if sel_props:
-    df_view = base_df[base_df["property"].isin(sel_props)].copy()
+    df_view = base_df[base_df["property"].isin(active_props)].copy()
 else:
-    # se non selezionato nulla, usa tutte le strutture
+    # nessuna selezione → usa tutto il baseline
     df_view = base_df.copy()
 
-# Se serve, calcola anno/mese attivi da df_view
-if "year" in df_view.columns and not df_view.empty:
-    active_y = int(pd.Series(df_view["year"]).dropna().max())
+# se ancora vuoto, interrompi in modo chiaro (evita dashboard “bianca”)
+if df_view.empty:
+    st.warning("Nessun dato disponibile nel baseline per la selezione corrente.")
+    st.stop()
+
+# ---- Anno/mese attivi (fallback robusto) ----
+if "year" in df_view.columns:
+    active_y = int(pd.to_numeric(df_view["year"], errors="coerce").dropna().max())
 else:
     active_y = pd.Timestamp.today().year
 
-if "month" in df_view.columns and not df_view.empty:
-    active_m = int(pd.Series(df_view["month"]).dropna().max())
+if "month" in df_view.columns:
+    active_m = int(pd.to_numeric(df_view["month"], errors="coerce").dropna().max())
 else:
     active_m = pd.Timestamp.today().month
 # determine active property (singola vista uses the first selected)
