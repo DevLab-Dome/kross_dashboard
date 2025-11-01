@@ -235,14 +235,8 @@ def _nav_month_label(y: int, m: int) -> str:
     months = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
     return f"{months[max(1,min(12,m))-1]} {y}"
 
-# ---------------------------------------------------------------------
-# TOP: Tabs (Streamlit / Pickup) – remain in first position
-# ---------------------------------------------------------------------
-tabs = st.tabs(["Streamlit", "Pickup"])
-with tabs[0]:
-    st.write("")
-with tabs[1]:
-    st.write("")
+st.title("DevLab – Kross Dashboard – Multi Struttura")
+
 
 # ---------------------------------------------------------------------
 # Sidebar: Vista + Caricamento (Caricamento section placed lower)
