@@ -240,10 +240,11 @@ sel_props = st.sidebar.multiselect(
     default=(properties[:1] if properties else []),
 )
 
-# Se il baseline è vuoto, mostra un avviso ma NON interrompere la app
+# Se il baseline è vuoto, mostra un avviso e interrompe il render (evita pagina bianca)
 if base_df.empty or not properties:
     st.warning("Baseline non trovato o vuoto: impossibile popolare la dashboard.")
     st.stop()
+
 
 # Vista (singola/aggregata)
 vista = st.sidebar.radio("Vista", ["Singola struttura", "Aggregata"], index=0)
