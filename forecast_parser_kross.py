@@ -75,75 +75,50 @@ def parse_kross_excel(
     """
     Legge un file Excel Kross e restituisce un DataFrame con colonne canoniche:
     [property, snapshot_date, stay_date, rooms_sold, revenue_total, adr, revpar]
-
-    Parameters
-    ----------
-    file_path : str
-        Percorso del file .xlsx/.xls
-    property_name : Optional[str]
-        Nome della property (se None, prova a inferirlo dal path)
-    snapshot_date : Optional[datetime]
-        Data snapshot (se None, prova a inferirla dal path YYYY-MM-DD)
-    sheet_name : Optional[str]
-        Nome foglio; se None usa il primo.
-
-    Returns
-    -------
-    (df, info)
-        df : pd.DataFrame (righe valide)
-        info: ParsedInfo
+    Fallback automatico: se il file non è un vero Excel, prova come CSV.
     """
+    # --- inferenze da path ---
     if property_name is None:
-        # inferisci dal path: .../<PROPERTY>/<YYYY-MM-DD>/file.xlsx oppure .../<PROPERTY>/inbox/file.xlsx
         parts = os.path.normpath(file_path).split(os.sep)
-        # cerca "inbox" o YYYY-MM-DD e prendi la cartella precedente come property
         prop = None
         for i, p in enumerate(parts):
             if p == "inbox" and i > 0:
-                prop = parts[i - 1]
-                break
+                prop = parts[i - 1]; break
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p) and i > 0:
-                prop = parts[i - 1]
-                break
+                prop = parts[i - 1]; break
         property_name = prop or "UNKNOWN"
 
     if snapshot_date is None:
-        # prova a leggere la directory YYYY-MM-DD nel path
         snap = None
         for p in os.path.normpath(file_path).split(os.sep):
             if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p):
                 try:
-                    snap = datetime.strptime(p, "%Y-%m-%d")
-                    break
+                    snap = datetime.strptime(p, "%Y-%m-%d"); break
                 except Exception:
                     pass
-        snapshot_date = snap  # può restare None (inbox)
+        snapshot_date = snap  # può restare None
 
     # --- lettura tabella con fallback CSV ---
-raw = None
-try:
-    # Tentativo 1: vero Excel (openpyxl)
-    xl = pd.ExcelFile(file_path, engine="openpyxl")
-    sh = sheet_name or (xl.sheet_names[0] if xl.sheet_names else None)
-    if sh is None:
-        raise ValueError(f"Nessun foglio trovato in: {file_path}")
-    raw = xl.parse(sh)
-except (BadZipFile, ValueError, FileNotFoundError):
-    # Tentativo 2: CSV (separatore auto, header prima riga)
+    raw = None
     try:
-        raw = pd.read_csv(file_path, sep=None, engine="python")
-    except Exception:
-        # Tentativo 3: CSV con separatore ';' (frequente negli export)
+        xl = pd.ExcelFile(file_path, engine="openpyxl")
+        sh = sheet_name or (xl.sheet_names[0] if xl.sheet_names else None)
+        if sh is None:
+            raise ValueError(f"Nessun foglio trovato in: {file_path}")
+        raw = xl.parse(sh)
+    except (BadZipFile, ValueError, FileNotFoundError):
         try:
-            raw = pd.read_csv(file_path, sep=";")
-        except Exception as e:
-            raise ValueError(f"Impossibile leggere il file come Excel o CSV: {file_path} — {e}")
+            raw = pd.read_csv(file_path, sep=None, engine="python")
+        except Exception:
+            try:
+                raw = pd.read_csv(file_path, sep=";")
+            except Exception as e:
+                raise ValueError(f"Impossibile leggere il file come Excel o CSV: {file_path} — {e}")
 
-# Se ancora vuoto o non DataFrame
-if not isinstance(raw, pd.DataFrame) or raw.empty:
-    return _empty_frame(property_name, snapshot_date), ParsedInfo(property_name, snapshot_date, 0, file_path)
+    if not isinstance(raw, pd.DataFrame) or raw.empty:
+        return _empty_frame(property_name, snapshot_date), ParsedInfo(property_name, snapshot_date, 0, file_path)
 
-    # mappa le colonne
+    # --- mapping colonne ---
     colmap = _match_columns(raw)
     req = {"stay_date", "rooms_sold", "revenue_total"}
     if not req.issubset(colmap.keys()):
@@ -151,12 +126,9 @@ if not isinstance(raw, pd.DataFrame) or raw.empty:
         raise ValueError(f"Colonne obbligatorie mancanti in {file_path}: {missing} — trovate: {list(raw.columns)}")
 
     df = pd.DataFrame()
-    # stay_date
     df["stay_date"] = _to_date(raw[colmap["stay_date"]])
-    # numeriche
     df["rooms_sold"] = _to_numeric(raw[colmap["rooms_sold"]])
     df["revenue_total"] = _to_numeric(raw[colmap["revenue_total"]])
-    # opzionali
     if "adr" in colmap:
         df["adr"] = _to_numeric(raw[colmap["adr"]])
     else:
@@ -164,16 +136,12 @@ if not isinstance(raw, pd.DataFrame) or raw.empty:
     if "revpar" in colmap:
         df["revpar"] = _to_numeric(raw[colmap["revpar"]])
     else:
-        # opzionale: stimabile se servisse, qui lasciamo NaN
         df["revpar"] = np.nan
 
-    # arricchisci con property e snapshot
     df["property"] = property_name
     df["snapshot_date"] = snapshot_date.date().isoformat() if snapshot_date else None
 
-    # filtra righe senza stay_date valide
     df = df[~df["stay_date"].isna()].copy()
-    # ordina per data soggiorno
     df = df.sort_values("stay_date").reset_index(drop=True)
 
     info = ParsedInfo(property=property_name, snapshot_date=snapshot_date, rows=len(df), source_path=file_path)
