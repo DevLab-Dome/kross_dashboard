@@ -181,10 +181,10 @@ def _compute_year_kpis(df: pd.DataFrame, year: int):
     return {"revenue":revenue,"occ":occ,"nights":nights,"adr":adr,"revpar":revpar}, deltas
 
 def _kpi_cell(label: str, value: str, delta: float):
-    cls = "up" if delta >= 0 else "down"
+cls = "up" if delta >= 0 else "down"
 sign = "+" if delta >= 0 else ""
 pill = f'<span class="kpi-pill {cls}">{sign}{delta:,.2f}</span>'
-    st.markdown(f"**{label}**  \n{value}  \n{pill}", unsafe_allow_html=True)
+st.markdown(f"**{label}**  \n{value}  \n{pill}", unsafe_allow_html=True)
 
 # YEAR KPIs
 k_year, d_year = _compute_year_kpis(df_view, active_y)
