@@ -69,59 +69,74 @@ def _inject_sidebar_css():
 _inject_sidebar_css()
 
 # ---------------------------------------------------------------------
-# Baseline loader (tolerant)
+# Baseline loader – robusto (CSV/Parquet/Excel) + path dinamici
 # ---------------------------------------------------------------------
+import os, glob
+
+# Directory primaria configurabile via ENV (altrimenti default)
+_BASE_DIR = os.getenv("KROSS_BASELINE_DIR", "/opt/kross_dashboard_dev/data/baseline")
+
+# Lista di pattern da scandire (ordina per priorità)
 BASELINE_GLOBS = [
-    "/opt/kross_dashboard_dev/data/baseline/*.parquet",
-    "/opt/kross_dashboard_dev/data/baseline/*.csv",
+    os.path.join(_BASE_DIR, "*.parquet"),
+    os.path.join(_BASE_DIR, "*.csv"),
+    os.path.join(_BASE_DIR, "*.xlsx"),
+    "/opt/kross_dashboard_dev/baseline/*.parquet",
+    "/opt/kross_dashboard_dev/baseline/*.csv",
+    "/opt/kross_dashboard_dev/baseline/*.xlsx",
+    "/opt/kross_dashboard_dev/data/*.parquet",
+    "/opt/kross_dashboard_dev/data/*.csv",
+    "/opt/kross_dashboard_dev/data/*.xlsx",
     "data/baseline/*.parquet",
     "data/baseline/*.csv",
+    "data/baseline/*.xlsx",
     "baseline/*.parquet",
     "baseline/*.csv",
+    "baseline/*.xlsx",
 ]
 
 RENAME_MAP = {
-    "Struttura": "property",
-    "Proprietà": "property",
-    "Hotel": "property",
-    "Anno": "year",
-    "Mese": "month",
-    "Totale revenue": "revenue_total",
-    "Notti vendute": "rooms_sold",
-    "ADR": "adr",
-    "RevPAR": "revpar",
-    # lower-case variants commonly seen
-    "struttura": "property",
-    "proprietà": "property",
-    "hotel": "property",
-    "anno": "year",
-    "mese": "month",
-    "totale revenue": "revenue_total",
-    "notti vendute": "rooms_sold",
+    "Struttura": "property", "Proprietà": "property", "Hotel": "property",
+    "Anno": "year", "Mese": "month",
+    "Totale revenue": "revenue_total", "Notti vendute": "rooms_sold",
+    "ADR": "adr", "RevPAR": "revpar",
+    # varianti lowercase
+    "struttura": "property", "proprietà": "property", "hotel": "property",
+    "anno": "year", "mese": "month",
+    "totale revenue": "revenue_total", "notti vendute": "rooms_sold",
 }
-
 REQUIRED_COLS = {"property", "year", "month"}
 
 @st.cache_data(show_spinner=False)
 def _load_baseline_files() -> pd.DataFrame:
     frames = []
+    seen = set()
     for pat in BASELINE_GLOBS:
         for path in glob.glob(pat):
+            # evita duplicati se lo stesso file matcha più pattern
+            if path in seen:
+                continue
+            seen.add(path)
             try:
                 if path.endswith(".parquet"):
                     df = pd.read_parquet(path)
-                else:
+                elif path.endswith(".csv"):
                     df = pd.read_csv(path)
+                elif path.endswith(".xlsx"):
+                    # prima sheet
+                    df = pd.read_excel(path, engine="openpyxl")
+                else:
+                    continue
                 if not isinstance(df, pd.DataFrame) or df.empty:
                     continue
-                # normalize columns via rename map (case-insensitive keys)
+
+                # normalizza nomi colonne (case-insensitive -> canonicali)
                 rename_ci = {}
                 for col in list(df.columns):
-                    key = col
-                    if key in RENAME_MAP:
-                        rename_ci[col] = RENAME_MAP[key]
+                    if col in RENAME_MAP:
+                        rename_ci[col] = RENAME_MAP[col]
                     else:
-                        low = col.lower()
+                        low = str(col).lower()
                         if low in RENAME_MAP:
                             rename_ci[col] = RENAME_MAP[low]
                 if rename_ci:
@@ -129,6 +144,7 @@ def _load_baseline_files() -> pd.DataFrame:
 
                 frames.append(df)
             except Exception:
+                # file non leggibile: ignora
                 continue
 
     if not frames:
@@ -136,112 +152,42 @@ def _load_baseline_files() -> pd.DataFrame:
 
     base = pd.concat(frames, ignore_index=True)
 
-    # guarantee presence of canonical columns if originals exist
+    # assicura colonne canoniche se presenti con nomi alternativi
     for src, dst in RENAME_MAP.items():
         if src in base.columns and dst not in base.columns:
             base[dst] = base[src]
 
-    # enforce dtypes
+    # tipi
     for col in ("year", "month"):
         if col in base.columns:
             base[col] = pd.to_numeric(base[col], errors="coerce").astype("Int64")
-    for col in ("revenue_total", "rooms_sold", "adr", "revpar"):
+    for col in ("revenue_total", "rooms_sold", "adr", "revpar", "occ"):
         if col in base.columns:
             base[col] = pd.to_numeric(base[col], errors="coerce")
 
-    # filter valid rows
-    if REQUIRED_COLS.issubset(set(base.columns)):
-        base = base.dropna(subset=list(REQUIRED_COLS))
-    else:
+    # validazione minima
+    if not REQUIRED_COLS.issubset(set(base.columns)):
         return pd.DataFrame()
 
-    # strip property and standardize
+    # pulizia property
     base["property"] = base["property"].astype(str).str.strip()
+    base = base.dropna(subset=list(REQUIRED_COLS))
     return base
 
 def ensure_baseline_in_session() -> None:
+    """Carica baseline in sessione e popola l'elenco strutture, se non già presenti."""
     if "baseline_df" not in st.session_state:
         df = _load_baseline_files()
         st.session_state["baseline_df"] = df if isinstance(df, pd.DataFrame) else pd.DataFrame()
         props = (
-            st.session_state["baseline_df"]["property"].dropna().astype(str).sort_values().unique().tolist()
+            st.session_state["baseline_df"]["property"]
+            .dropna().astype(str).sort_values().unique().tolist()
             if "property" in st.session_state["baseline_df"].columns and not st.session_state["baseline_df"].empty
             else []
         )
         st.session_state["properties"] = props
-
 # ---------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------
-def _fmt_eur(x: float) -> str:
-    try:
-        return f"€ {x:,.0f}".replace(",", ".")
-    except Exception:
-        return "€ 0"
 
-def _fmt_pct(x: float) -> str:
-    try:
-        return f"{x:.2f}%"
-    except Exception:
-        return "0.00%"
-
-def _fmt_th(x: float) -> str:
-    try:
-        return f"{int(x):,}".replace(",", ".")
-    except Exception:
-        return "0"
-
-def _kpi_cell(label: str, value: str, delta: Optional[float]) -> None:
-    cls = "up" if (delta is not None and delta >= 0) else "down"
-    sign = "+" if (delta is not None and delta >= 0) else ""
-    pill = "" if delta is None else f'<span class="kpi-pill {cls}">{sign}{delta:,.2f}</span>'
-    st.markdown(f"**{label}**  \n{value}  \n{pill}", unsafe_allow_html=True)
-
-def _compute_year_kpis(df: pd.DataFrame, year: int) -> Tuple[dict, dict]:
-    d = df[df["year"] == year]
-    p = df[df["year"] == (year - 1)] if year and (year - 1) in df["year"].unique() else pd.DataFrame()
-
-    revenue = float(pd.to_numeric(d.get("revenue_total", pd.Series(dtype=float)), errors="coerce").sum())
-    nights  = float(pd.to_numeric(d.get("rooms_sold", pd.Series(dtype=float)), errors="coerce").sum())
-    adr     = float(pd.to_numeric(d.get("adr", pd.Series(dtype=float)), errors="coerce").mean())
-    revpar  = float(pd.to_numeric(d.get("revpar", pd.Series(dtype=float)), errors="coerce").mean())
-    # Occupancy monthly formula requires rooms available; fallback: mean of column "occ" if present
-    if "occ" in d.columns:
-        occ = float(pd.to_numeric(d["occ"], errors="coerce").mean())
-    else:
-        occ = 0.0
-
-    # previous year
-    if not p.empty:
-        revenue_py = float(pd.to_numeric(p.get("revenue_total", pd.Series(dtype=float)), errors="coerce").sum())
-        nights_py  = float(pd.to_numeric(p.get("rooms_sold", pd.Series(dtype=float)), errors="coerce").sum())
-        adr_py     = float(pd.to_numeric(p.get("adr", pd.Series(dtype=float)), errors="coerce").mean())
-        revpar_py  = float(pd.to_numeric(p.get("revpar", pd.Series(dtype=float)), errors="coerce").mean())
-        occ_py     = float(pd.to_numeric(p["occ"], errors="coerce").mean()) if "occ" in p.columns else 0.0
-    else:
-        revenue_py = nights_py = adr_py = revpar_py = occ_py = 0.0
-
-    k = dict(revenue=revenue, nights=nights, adr=adr, revpar=revpar, occ=occ)
-    dlt = dict(
-        revenue=revenue - revenue_py,
-        nights=nights - nights_py,
-        adr=adr - adr_py,
-        revpar=revpar - revpar_py,
-        occ=occ - occ_py,
-    )
-    return k, dlt
-
-def _nav_month_label(y: int, m: int) -> str:
-    months = ["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"]
-    return f"{months[max(1,min(12,m))-1]} {y}"
-
-st.title("DevLab – Kross Dashboard – Multi Struttura")
-
-
-# ---------------------------------------------------------------------
-# Sidebar: Vista + Caricamento (Caricamento section placed lower)
-# ---------------------------------------------------------------------
-ensure_baseline_in_session()
 base_df: pd.DataFrame = st.session_state.get("baseline_df", pd.DataFrame())
 properties: List[str] = st.session_state.get("properties", [])
 
