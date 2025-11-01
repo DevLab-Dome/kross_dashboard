@@ -11,6 +11,7 @@ from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
 from pickup_strip import render_pickup_next_11_months
+from baseline_loader import load_all_baselines, get_year_data, monthly_kpi
 
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
