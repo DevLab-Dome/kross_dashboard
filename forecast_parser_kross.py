@@ -20,6 +20,7 @@ import numpy as np
 import os
 import re
 from datetime import datetime
+from zipfile import BadZipFile
 
 # --- MAPPING COLONNE ---------------------------------------------------------
 
