@@ -135,6 +135,7 @@ YEARS = [2024, 2025]
 # -----------------------------------------------------------------------------
 # SIDEBAR: Selettori + Uploader
 # -----------------------------------------------------------------------------
+
 if st.sidebar.button("Svuota caricamenti"):
     st.session_state["datasets"].clear()
     st.sidebar.info("Archivio file svuotato.")
@@ -177,6 +178,12 @@ properties = sorted(df_all["property"].dropna().unique().tolist())
 
 st.sidebar.markdown("---")
 view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=0)
+if view_mode == "Singola struttura":
+    prop_view = st.sidebar.selectbox("Seleziona struttura per l'analisi", options=properties, index=0)
+    props_to_use = [prop_view]
+else:
+    props_to_use = st.sidebar.multiselect("Seleziona strutture da aggregare"
+
 st.sidebar.markdown('---')
 st.sidebar.header("Carica i dati")
 prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
@@ -214,11 +221,7 @@ with col_sb_b:
             st.sidebar.warning("Demo non disponibile per la combinazione scelta.")
 
 st.sidebar.markdown("---")
-if view_mode == "Singola struttura":
-    prop_view = st.sidebar.selectbox("Seleziona struttura per l'analisi", options=properties, index=0)
-    props_to_use = [prop_view]
-else:
-    props_to_use = st.sidebar.multiselect("Seleziona strutture da aggregare", options=properties, default=properties)
+, options=properties, default=properties)
 
 df_view = df_all[df_all["property"].isin(props_to_use)].copy()
 if df_view.empty:
