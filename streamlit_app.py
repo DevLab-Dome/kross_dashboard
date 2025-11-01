@@ -27,6 +27,28 @@ def _load_baseline_all():
     return df
 
 BASELINE_ALL = _load_baseline_all()  # disponibile in tutta l'app
+# --- DEFAULT CONTEXT: struttura & anno (per evitare home vuota) ---
+from datetime import datetime
+
+if BASELINE_ALL is not None and not BASELINE_ALL.empty:
+    # preferenza d'ordine; se manca, prendi la prima disponibile nei baseline
+    preferred = ["Lavagnini", "La_Terrazza"]
+    have = BASELINE_ALL["property"].dropna().unique().tolist()
+    ordered = [p for p in preferred if p in have] or sorted(have)
+
+    # struttura di default = ultima usata in sessione, altrimenti la prima disponibile
+    default_prop = (
+        st.session_state.get("struttura_sel")
+        or st.session_state.get("selected_property")
+        or ordered[0]
+    )
+    st.session_state["struttura_sel"] = default_prop
+    struttura_sel = default_prop  # variabile che usi nel resto della pagina
+
+    # anno di default = ultimo selezionato o anno corrente
+    default_year = int(st.session_state.get("active_y") or datetime.now().year)
+    st.session_state["active_y"] = default_year
+    active_y = default_year  # variabile che usi nel resto della pagina
 
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
