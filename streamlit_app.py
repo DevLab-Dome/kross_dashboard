@@ -12,6 +12,21 @@ from modules.metrics import month_overview, next_6_months, filter_by_properties
 
 from pickup_strip import render_pickup_next_11_months
 from baseline_loader import load_all_baselines, get_year_data, monthly_kpi
+# --- BASELINE: caricamento unico con cache ---
+import streamlit as st
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _load_baseline_all():
+    df = load_all_baselines()  # legge /data/baseline per tutte le property/anni
+    # tipi coerenti
+    if df is not None and not df.empty:
+        df["stay_date"] = pd.to_datetime(df["stay_date"]).dt.date
+        for c in ["rooms_sold","revenue_total","adr","revpar"]:
+            if c in df.columns:
+                df[c] = pd.to_numeric(df[c], errors="coerce")
+    return df
+
+BASELINE_ALL = _load_baseline_all()  # disponibile in tutta l'app
 
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
