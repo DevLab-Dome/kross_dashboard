@@ -10,6 +10,8 @@ import streamlit as st
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
+from pickup_strip import render_pickup_next_11_months
+
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
 # -----------------------------------------------------------------------------
@@ -631,6 +633,24 @@ if hdr.get("prev_clicked"): go_prev(); st.rerun()
 if hdr.get("next_clicked"): go_next(); st.rerun()
 
 render_month_kpis_1547(kpi_header, deltas_header)
+
+# --- Pick-up: prossimi 11 mesi (usa l’ultimo snapshot disponibile) ---
+try:
+    label_prop = struttura_sel  # variabile già usata per la select "Struttura"
+except NameError:
+    label_prop = st.session_state.get("struttura_sel") or st.session_state.get("selected_property") or ""
+
+# Mappatura semplice label UI -> cartella storage
+lab = str(label_prop).lower()
+if "lavagnini" in lab:
+    prop_key = "Lavagnini"
+elif "terrazza" in lab:
+    prop_key = "La_Terrazza"
+else:
+    prop_key = str(label_prop)
+
+render_pickup_next_11_months(prop_key)
+# --- fine sezione pick-up 11 mesi ---
 
 # -----------------------------------------------------------------------------
 # (segue tutto il resto della pagina: KPI mensili, tabelle, grafici…)
