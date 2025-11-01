@@ -50,6 +50,58 @@ if BASELINE_ALL is not None and not BASELINE_ALL.empty:
     st.session_state["active_y"] = default_year
     active_y = default_year  # variabile che usi nel resto della pagina
 
+# === BASELINE · HOME (render immediato per evitare pagina vuota) ===
+try:
+    _prop_lbl = st.session_state.get("struttura_sel") or "Lavagnini"
+except Exception:
+    _prop_lbl = "Lavagnini"
+
+# mappatura label->cartella storage
+_lab = str(_prop_lbl).lower()
+if "lavagnini" in _lab:
+    _prop_key = "Lavagnini"
+elif "terrazza" in _lab:
+    _prop_key = "La_Terrazza"
+else:
+    _prop_key = _prop_lbl
+
+# anno di default
+from datetime import datetime as _dt
+_year_sel = int(st.session_state.get("active_y") or _dt.now().year)
+
+# se abbiamo baseline caricati, rendiamo subito KPI anno + tabella mese
+if BASELINE_ALL is not None and not BASELINE_ALL.empty:
+    _df_year = get_year_data(BASELINE_ALL, _prop_key, _year_sel)
+    if _df_year is not None and not _df_year.empty:
+        _total_rev = float(_df_year["revenue_total"].sum())
+        _total_rooms = int(_df_year["rooms_sold"].sum())
+        _mean_adr = float(pd.to_numeric(_df_year["adr"], errors="coerce").mean())
+        _mean_revpar = float(pd.to_numeric(_df_year["revpar"], errors="coerce").mean())
+
+        st.markdown(f"## 📅 Anno {_year_sel} — baseline ({_prop_key})")
+        _c1, _c2, _c3, _c4 = st.columns(4)
+        _c1.metric("Revenue anno (baseline)", f"€ {_total_rev:,.2f}".replace(",", "."))
+        _c2.metric("Notti vendute anno", f"{_total_rooms}")
+        _c3.metric("ADR medio anno", f"€ {_mean_adr:.2f}")
+        _c4.metric("RevPAR medio anno", f"€ {_mean_revpar:.2f}")
+
+        st.markdown("### 📊 Mese — baseline")
+        _mm = monthly_kpi(_df_year)
+        st.dataframe(
+            _mm.rename(columns={
+                "month":"Mese",
+                "revenue_total":"Revenue",
+                "rooms_sold":"Notti vendute",
+                "adr":"ADR medio",
+                "revpar":"RevPAR medio",
+            }),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info(f"Nessun baseline per **{_prop_key}** anno **{_year_sel}** in `/srv/ihosp/baseline/{_prop_key}/`.")
+# === FINE BASELINE · HOME ===
+
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
 # -----------------------------------------------------------------------------
