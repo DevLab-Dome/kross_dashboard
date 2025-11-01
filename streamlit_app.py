@@ -50,57 +50,7 @@ if BASELINE_ALL is not None and not BASELINE_ALL.empty:
     st.session_state["active_y"] = default_year
     active_y = default_year  # variabile che usi nel resto della pagina
 
-# === BASELINE · HOME (render immediato per evitare pagina vuota) ===
-try:
-    _prop_lbl = st.session_state.get("struttura_sel") or "Lavagnini"
-except Exception:
-    _prop_lbl = "Lavagnini"
-
-# mappatura label->cartella storage
-_lab = str(_prop_lbl).lower()
-if "lavagnini" in _lab:
-    _prop_key = "Lavagnini"
-elif "terrazza" in _lab:
-    _prop_key = "La_Terrazza"
-else:
-    _prop_key = _prop_lbl
-
-# anno di default
-from datetime import datetime as _dt
-_year_sel = int(st.session_state.get("active_y") or _dt.now().year)
-
-# se abbiamo baseline caricati, rendiamo subito KPI anno + tabella mese
-if BASELINE_ALL is not None and not BASELINE_ALL.empty:
-    _df_year = get_year_data(BASELINE_ALL, _prop_key, _year_sel)
-    if _df_year is not None and not _df_year.empty:
-        _total_rev = float(_df_year["revenue_total"].sum())
-        _total_rooms = int(_df_year["rooms_sold"].sum())
-        _mean_adr = float(pd.to_numeric(_df_year["adr"], errors="coerce").mean())
-        _mean_revpar = float(pd.to_numeric(_df_year["revpar"], errors="coerce").mean())
-
-        st.markdown(f"## 📅 Anno {_year_sel} — baseline ({_prop_key})")
-        _c1, _c2, _c3, _c4 = st.columns(4)
-        _c1.metric("Revenue anno (baseline)", f"€ {_total_rev:,.2f}".replace(",", "."))
-        _c2.metric("Notti vendute anno", f"{_total_rooms}")
-        _c3.metric("ADR medio anno", f"€ {_mean_adr:.2f}")
-        _c4.metric("RevPAR medio anno", f"€ {_mean_revpar:.2f}")
-
-        st.markdown("### 📊 Mese — baseline")
-        _mm = monthly_kpi(_df_year)
-        st.dataframe(
-            _mm.rename(columns={
-                "month":"Mese",
-                "revenue_total":"Revenue",
-                "rooms_sold":"Notti vendute",
-                "adr":"ADR medio",
-                "revpar":"RevPAR medio",
-            }),
-            use_container_width=True,
-            hide_index=True,
-        )
-    else:
-        st.info(f"Nessun baseline per **{_prop_key}** anno **{_year_sel}** in `/srv/ihosp/baseline/{_prop_key}/`.")
-# === FINE BASELINE · HOME ===
+# (baseline home block removed)
 
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
@@ -229,8 +179,34 @@ if st.sidebar.button("Svuota caricamenti"):
 # ASSEMBLA DF GLOBALE
 # -----------------------------------------------------------------------------
 if not st.session_state["datasets"]:
-    st.warning("Carica almeno un file (Struttura + Anno).")
-    st.stop()
+    # Fallback: popola dai baseline/storici già presenti su disco
+    if BASELINE_ALL is not None and not BASELINE_ALL.empty:
+        # mapping property storage -> label UI
+        _map = {"Lavagnini": "Lavagnini My Place", "La_Terrazza": "La Terrazza di Jenny"}
+        for _prop_key, _label in _map.items():
+            _dfp = BASELINE_ALL[BASELINE_ALL["property"] == _prop_key].copy()
+            if _dfp is None or _dfp.empty:
+                continue
+            _dfp["stay_date"] = pd.to_datetime(_dfp["stay_date"])
+            _dfp["year"] = _dfp["stay_date"].dt.year
+            _dfp["month"] = _dfp["stay_date"].dt.month
+            _dfp["property"] = _label
+            # colonne attese dalla pipeline
+            _dfp["revenue"] = pd.to_numeric(_dfp.get("revenue_total", pd.Series(dtype=float)), errors="coerce")
+            _dfp["occupied"] = pd.to_numeric(_dfp.get("rooms_sold", pd.Series(dtype=float)), errors="coerce")
+            # adr/revpar opzionali
+            if "adr" in _dfp.columns:
+                _dfp["adr"] = pd.to_numeric(_dfp["adr"], errors="coerce")
+            if "revpar" in _dfp.columns:
+                _dfp["revpar"] = pd.to_numeric(_dfp["revpar"], errors="coerce")
+            # registra per ogni anno
+            for _y in sorted(_dfp["year"].dropna().unique().tolist()):
+                _slice = _dfp[_dfp["year"] == _y].copy()
+                st.session_state["datasets"][(_label, int(_y))] = _slice[["property","year","month","stay_date","revenue","occupied","adr","revpar"]]
+    # se ancora vuoto, mantieni messaggio originale
+    if not st.session_state["datasets"]:
+        st.warning("Carica almeno un file (Struttura + Anno).")
+        st.stop()
 
 df_all = pd.concat(st.session_state["datasets"].values(), ignore_index=True)
 properties = sorted(df_all["property"].dropna().unique().tolist())
