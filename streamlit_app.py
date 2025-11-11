@@ -7,6 +7,45 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
+# --- DevLab HTTP Archive Bridge (HTTP-only) ---
+import os, pathlib
+import pandas as pd
+
+# Cambia dominio se NON è ihosp.it
+KROSS_ARCHIVE_URL_DEFAULT = "https://ihosp.it/wp-content/uploads/kross_dash_archive"
+
+def _resolve_archive():
+    url = (os.environ.get("KROSS_ARCHIVE_URL", "") or KROSS_ARCHIVE_URL_DEFAULT).strip()
+    if url:
+        return {"mode": "http", "root": url.rstrip("/")}
+    for local in ("/opt/kross_dash_archive", "/opt/ihosp_archive"):
+        if pathlib.Path(local).exists():
+            return {"mode": "fs", "root": local}
+    return {"mode": "fs", "root": "/opt/kross_dash_archive"}
+
+_ARCH = _resolve_archive()
+
+def _read_table(relpath: str) -> pd.DataFrame:
+    rel = relpath.lstrip("/")
+    if _ARCH["mode"] == "http":
+        url = f'{_ARCH["root"]}/{rel}'
+        if url.lower().endswith((".xlsx", ".xls", ".xlsm")):
+            return pd.read_excel(url)
+        return pd.read_csv(url)
+    p = pathlib.Path(_ARCH["root"]).joinpath(rel)
+    if not p.exists():
+        raise FileNotFoundError(str(p))
+    if p.suffix.lower() in (".xlsx", ".xls", ".xlsm"):
+        return pd.read_excel(p)
+    return pd.read_csv(p)
+
+def _path_history_baseline() -> str:
+    return "History_Baseline"
+
+def _path_inbox(structure: str, year: int) -> str:
+    return f"inbox_forecasts/{structure}/{year}"
+# --- /DevLab HTTP Archive Bridge ---
+
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
 
