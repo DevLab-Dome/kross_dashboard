@@ -278,7 +278,7 @@ with col_sb_b:
             st.sidebar.warning("Demo non disponibile per la combinazione scelta.")
 
 st.sidebar.markdown("---")
-options=properties, default=properties)
+options=properties, default=properties
 
 df_view = df_all[df_all["property"].isin(props_to_use)].copy()
 if df_view.empty:
