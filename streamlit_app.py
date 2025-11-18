@@ -7,89 +7,8 @@ from datetime import datetime
 import pandas as pd
 import streamlit as st
 
-# --- DevLab HTTP Archive Bridge (HTTP-only) ---
-import os, pathlib
-import pandas as pd
-
-# Cambia dominio se NON è ihosp.it
-KROSS_ARCHIVE_URL_DEFAULT = "https://ihosp.it/wp-content/uploads/kross_dash_archive"
-
-def _resolve_archive():
-    url = (os.environ.get("KROSS_ARCHIVE_URL", "") or KROSS_ARCHIVE_URL_DEFAULT).strip()
-    if url:
-        return {"mode": "http", "root": url.rstrip("/")}
-    for local in ("/opt/kross_dash_archive", "/opt/ihosp_archive"):
-        if pathlib.Path(local).exists():
-            return {"mode": "fs", "root": local}
-    return {"mode": "fs", "root": "/opt/kross_dash_archive"}
-
-_ARCH = _resolve_archive()
-
-def _read_table(relpath: str) -> pd.DataFrame:
-    rel = relpath.lstrip("/")
-    if _ARCH["mode"] == "http":
-        url = f'{_ARCH["root"]}/{rel}'
-        if url.lower().endswith((".xlsx", ".xls", ".xlsm")):
-            return pd.read_excel(url)
-        return pd.read_csv(url)
-    p = pathlib.Path(_ARCH["root"]).joinpath(rel)
-    if not p.exists():
-        raise FileNotFoundError(str(p))
-    if p.suffix.lower() in (".xlsx", ".xls", ".xlsm"):
-        return pd.read_excel(p)
-    return pd.read_csv(p)
-
-def _path_history_baseline() -> str:
-    return "History_Baseline"
-
-def _path_inbox(structure: str, year: int) -> str:
-    return f"inbox_forecasts/{structure}/{year}"
-# --- /DevLab HTTP Archive Bridge ---
-
 from modules.data_loader import load_config, normalize_wide_excel
 from modules.metrics import month_overview, next_6_months, filter_by_properties
-
-from pickup_strip import render_pickup_next_11_months
-from baseline_loader import load_all_baselines, get_year_data, monthly_kpi
-# --- BASELINE: caricamento unico con cache ---
-import streamlit as st
-
-@st.cache_data(ttl=600, show_spinner=False)
-def _load_baseline_all():
-    df = load_all_baselines()  # legge /data/baseline per tutte le property/anni
-    # tipi coerenti
-    if df is not None and not df.empty:
-        df["stay_date"] = pd.to_datetime(df["stay_date"]).dt.date
-        for c in ["rooms_sold","revenue_total","adr","revpar"]:
-            if c in df.columns:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
-    return df
-
-BASELINE_ALL = _load_baseline_all()  # disponibile in tutta l'app
-# --- DEFAULT CONTEXT: struttura & anno (per evitare home vuota) ---
-from datetime import datetime
-
-if BASELINE_ALL is not None and not BASELINE_ALL.empty:
-    # preferenza d'ordine; se manca, prendi la prima disponibile nei baseline
-    preferred = ["Lavagnini", "La_Terrazza"]
-    have = BASELINE_ALL["property"].dropna().unique().tolist()
-    ordered = [p for p in preferred if p in have] or sorted(have)
-
-    # struttura di default = ultima usata in sessione, altrimenti la prima disponibile
-    default_prop = (
-        st.session_state.get("struttura_sel")
-        or st.session_state.get("selected_property")
-        or ordered[0]
-    )
-    st.session_state["struttura_sel"] = default_prop
-    struttura_sel = default_prop  # variabile che usi nel resto della pagina
-
-    # anno di default = ultimo selezionato o anno corrente
-    default_year = int(st.session_state.get("active_y") or datetime.now().year)
-    st.session_state["active_y"] = default_year
-    active_y = default_year  # variabile che usi nel resto della pagina
-
-# (baseline home block removed)
 
 # -----------------------------------------------------------------------------
 # STILI BASE (unica definizione)
@@ -174,79 +93,11 @@ YEARS = [2024, 2025]
 # -----------------------------------------------------------------------------
 # SIDEBAR: Selettori + Uploader
 # -----------------------------------------------------------------------------
+st.sidebar.header("Carica i dati")
+prop_sel = st.sidebar.selectbox("Struttura", options=PROPERTIES, index=0)
+year_sel = st.sidebar.selectbox("Anno", options=YEARS, index=YEARS.index(today.year) if today.year in YEARS else 0)
 
-if st.sidebar.button("Svuota caricamenti"):
-    st.session_state["datasets"].clear()
-    st.sidebar.info("Archivio file svuotato.")
-
-# -----------------------------------------------------------------------------
-# ASSEMBLA DF GLOBALE
-# -----------------------------------------------------------------------------
-if not st.session_state["datasets"]:
-    # Fallback: popola dai baseline/storici già presenti su disco
-    if BASELINE_ALL is not None and not BASELINE_ALL.empty:
-        # mapping property storage -> label UI
-        _map = {"Lavagnini": "Lavagnini My Place", "La_Terrazza": "La Terrazza di Jenny"}
-        for _prop_key, _label in _map.items():
-            _dfp = BASELINE_ALL[BASELINE_ALL["property"] == _prop_key].copy()
-            if _dfp is None or _dfp.empty:
-                continue
-            _dfp["stay_date"] = pd.to_datetime(_dfp["stay_date"])
-            _dfp["year"] = _dfp["stay_date"].dt.year
-            _dfp["month"] = _dfp["stay_date"].dt.month
-            _dfp["property"] = _label
-            # colonne attese dalla pipeline
-            _dfp["revenue"] = pd.to_numeric(_dfp.get("revenue_total", pd.Series(dtype=float)), errors="coerce")
-            _dfp["occupied"] = pd.to_numeric(_dfp.get("rooms_sold", pd.Series(dtype=float)), errors="coerce")
-            # adr/revpar opzionali
-            if "adr" in _dfp.columns:
-                _dfp["adr"] = pd.to_numeric(_dfp["adr"], errors="coerce")
-            if "revpar" in _dfp.columns:
-                _dfp["revpar"] = pd.to_numeric(_dfp["revpar"], errors="coerce")
-            # registra per ogni anno
-            for _y in sorted(_dfp["year"].dropna().unique().tolist()):
-                _slice = _dfp[_dfp["year"] == _y].copy()
-                st.session_state["datasets"][(_label, int(_y))] = _slice[["property","year","month","stay_date","revenue","occupied","adr","revpar"]]
-    # se ancora vuoto, mantieni messaggio originale
-    if not st.session_state["datasets"]:
-        st.warning("Carica almeno un file (Struttura + Anno).")
-        st.stop()
-
-df_all = pd.concat(st.session_state["datasets"].values(), ignore_index=True)
-properties = sorted(df_all["property"].dropna().unique().tolist())
-
-st.sidebar.markdown("---")
-view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=0)
-if _current_vm == "Singola struttura":
-    _default_prop = st.session_state.get("prop_view", properties[0] if properties else None)
-    prop_view = st.sidebar.selectbox(
-        "Seleziona struttura per l'analisi",
-        options=properties,
-        index=(properties.index(_default_prop) if (_default_prop in properties) else 0) if properties else 0,
-        key="sb_prop_single",
-    )
-    props_to_use = [prop_view]
-else:
-    _default_multi = st.session_state.get("props_to_use", properties)
-    props_to_use = st.sidebar.multiselect(
-        "Seleziona strutture da aggregare",
-        options=properties,
-        default=_default_multi if _default_multi else [],
-        key="sb_prop_multi",
-    )
-
-view_mode = st.sidebar.radio(
-    "Vista",
-    options=["Singola struttura", "Aggregata"],
-    index=(0 if _current_vm == "Singola struttura" else 1),
-    key="view_mode",
-)
-
-# aggiorna cache props quando cambia selezione
-st.session_state["prop_view"] = (
-    props_to_use[0] if isinstance(props_to_use, list) and props_to_use else st.session_state.get("prop_view")
-)
-st.session_state["props_to_use"] = props_to_use
+upl = st.sidebar.file_uploader(f"File {prop_sel} – {year_sel}", type=["xlsx"], key=f"uploader_{prop_sel}_{year_sel}")
 col_sb_a, col_sb_b = st.sidebar.columns(2)
 with col_sb_a:
     if st.button("Carica file selezionato", use_container_width=True):
@@ -278,7 +129,27 @@ with col_sb_b:
             st.sidebar.warning("Demo non disponibile per la combinazione scelta.")
 
 st.sidebar.markdown("---")
-options=properties, default=properties
+if st.sidebar.button("Svuota caricamenti"):
+    st.session_state["datasets"].clear()
+    st.sidebar.info("Archivio file svuotato.")
+
+# -----------------------------------------------------------------------------
+# ASSEMBLA DF GLOBALE
+# -----------------------------------------------------------------------------
+if not st.session_state["datasets"]:
+    st.warning("Carica almeno un file (Struttura + Anno).")
+    st.stop()
+
+df_all = pd.concat(st.session_state["datasets"].values(), ignore_index=True)
+properties = sorted(df_all["property"].dropna().unique().tolist())
+
+st.sidebar.markdown("---")
+view_mode = st.sidebar.radio("Vista", options=["Singola struttura", "Aggregata"], index=0)
+if view_mode == "Singola struttura":
+    prop_view = st.sidebar.selectbox("Seleziona struttura per l'analisi", options=properties, index=0)
+    props_to_use = [prop_view]
+else:
+    props_to_use = st.sidebar.multiselect("Seleziona strutture da aggregare", options=properties, default=properties)
 
 df_view = df_all[df_all["property"].isin(props_to_use)].copy()
 if df_view.empty:
@@ -415,46 +286,11 @@ def _five_slots():
     return st.columns([2, 1, 3, 1, 2], gap="large")
 
 def render_year_header_1547(year_label: int):
-    """
-    Header ANNO: titolo centrato e pulsanti SX/DX con etichette sotto i bottoni,
-    identico alla struttura della navigazione MESE (usa _five_slots()).
-    Ritorna: {"prev_clicked": bool, "next_clicked": bool}
-    """
-    c1, c2, c3, c4, c5 = _five_slots()  # stessa griglia 2–1–3–1–2
-    prev_year = year_label - 1
-    next_year = year_label + 1
-
-    with c1:  # pulsante sinistro + label anno precedente
-        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
-        prev_clicked = st.button("◀", key="yh_prev", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{prev_year}</div>', unsafe_allow_html=True)
-
-    with c3:  # titolo centrale su due righe (come mese)
-        st.markdown(
-            f"""
-            <div class="mh-center" style="display:flex; flex-direction:column; justify-content:center; align-items:center; height:110px;">
-              <p class="mh-month" style="font-size:28px; line-height:1.1; font-weight:700;">Anno {year_label}</p>
-              <div class="mh-sub">(anno di comparazione: {year_label-1})</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with c5:  # pulsante destro + label anno successivo
-        st.markdown('<div class="mh-btn">', unsafe_allow_html=True)
-        next_clicked = st.button("▶", key="yh_next", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{next_year}</div>', unsafe_allow_html=True)
-
-    return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
-
     # -----------------------------------------------------------------------------
 # STRISCIA ANNO – KPI (stessa grafica/struttura della striscia MESE)
 # -----------------------------------------------------------------------------
 def _compute_year_kpis(df_all_like: pd.DataFrame, year: int) -> tuple[dict, dict]:
     """Calcola KPI annuali + delta YoY sullo stesso perimetro di strutture selezionate."""
-    import calendar
     df_y  = df_all_like[df_all_like["year"] == year].copy()
     df_py = df_all_like[df_all_like["year"] == year - 1].copy()
 
@@ -623,6 +459,7 @@ def render_year_kpis_1547(kpi: dict, deltas: dict):
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under" style="color:#15803d; font-weight:700;">{next_year}</div>', unsafe_allow_html=True)
 
+    st.divider()
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # -----------------------------------------------------------------------------
@@ -654,6 +491,7 @@ def render_month_header_1547(month_label: str, prev_month_label: str, next_month
         st.markdown('</div>', unsafe_allow_html=True)
         st.markdown(f'<div class="mh-under" style="color:#166534; font-weight:700;">{next_month_label}</div>', unsafe_allow_html=True)
 
+    st.divider()
     return {"prev_clicked": prev_clicked, "next_clicked": next_clicked}
 
 # -----------------------------------------------------------------------------
@@ -698,7 +536,7 @@ def render_month_kpis_1547(kpi: dict[str, str], deltas: dict[str, float]):
     html = f"""
 <div class="kpi-row">
   <div class="kpi-box">
-    <div class="kpi-label">Revenue anno</div>
+    <div class="kpi-label">Revenue mese</div>
     <div class="kpi-value">{kpi.get("Revenue","–")}</div>
     {pill(deltas.get("Revenue"))}
   </div>
@@ -746,31 +584,7 @@ if yhdr.get("next_clicked"):
     st.session_state["active_year"] = active_y + 1
     st.session_state["active_month"] = datetime.now().month   # mese corrente, ma del nuovo anno
     st.rerun()
-# === STRISCIA DATI – ANNO (riuso del renderer MESE per allineamento pixel-perfect) ===
-# === STRISCIA DATI – ANNO (riuso renderer MESE) ===
-# --- FALLBACK BASELINE: se df_view è vuoto, usa i baseline/storici ---
-try:
-    _label_prop = struttura_sel
-except NameError:
-    _label_prop = st.session_state.get("struttura_sel") or st.session_state.get("selected_property") or "Lavagnini"
 
-_lab = str(_label_prop).lower()
-if "lavagnini" in _lab:
-    _prop_key = "Lavagnini"
-elif "terrazza" in _lab:
-    _prop_key = "La_Terrazza"
-else:
-    _prop_key = _label_prop
-
-if (df_view is None) or (getattr(df_view, "empty", True)):
-    _df_year = get_year_data(BASELINE_ALL, _prop_key, int(active_y))
-    if _df_year is not None and not _df_year.empty:
-        # df_view deve avere le colonne attese dal calcolo anno
-        df_view = _df_year[["stay_date", "rooms_sold", "revenue_total", "adr", "revpar"]].copy()
-        df_view["stay_date"] = pd.to_datetime(df_view["stay_date"])
-# --- FINE FALLBACK BASELINE ---
-kpi_year, deltas_year = _compute_year_kpis(df_view, active_y)
-render_month_kpis_1547(kpi_year, deltas_year)
 hdr = render_month_header_1547(
     month_label=curr_label,
     prev_month_label=prev_label,
@@ -781,81 +595,6 @@ if hdr.get("prev_clicked"): go_prev(); st.rerun()
 if hdr.get("next_clicked"): go_next(); st.rerun()
 
 render_month_kpis_1547(kpi_header, deltas_header)
-# === BASELINE · POPOLAMENTO ANNO / MESE (fallback se le sezioni native sono vuote) ===
-# Determina la property 'tecnica' per le cartelle baseline
-try:
-    label_prop = struttura_sel  # la tua select struttura, se esiste
-except NameError:
-    label_prop = st.session_state.get("struttura_sel") or st.session_state.get("selected_property") or ""
-
-lab = str(label_prop).lower()
-if "lavagnini" in lab:
-    prop_key = "Lavagnini"
-elif "terrazza" in lab:
-    prop_key = "La_Terrazza"
-else:
-    # se la label non combacia, usa la prima property presente nei baseline
-    props_found = sorted(BASELINE_ALL["property"].unique().tolist()) if BASELINE_ALL is not None and not BASELINE_ALL.empty else []
-    prop_key = props_found[0] if props_found else "Lavagnini"
-
-# Anno attivo (usa la tua variabile se presente, altrimenti l'anno corrente)
-try:
-    year_sel = int(active_y)
-except Exception:
-    year_sel = int(st.session_state.get("active_y") or datetime.now().year)
-
-# Carica dati ANNO (baseline o history) per property/year
-df_year = get_year_data(BASELINE_ALL, prop_key, year_sel)
-
-if df_year is not None and not df_year.empty:
-    # KPI annuali (somma/medie sul dataset baseline)
-    total_rev = float(df_year["revenue_total"].sum())
-    total_rooms = int(df_year["rooms_sold"].sum())
-    mean_adr = float(pd.to_numeric(df_year["adr"], errors="coerce").mean())
-    mean_revpar = float(pd.to_numeric(df_year["revpar"], errors="coerce").mean())
-
-    st.markdown(f"## 📅 Anno {year_sel} — baseline ({prop_key})")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Revenue anno (baseline)", f"€ {total_rev:,.2f}".replace(",", "."))
-    c2.metric("Notti vendute anno", f"{total_rooms}")
-    c3.metric("ADR medio anno", f"€ {mean_adr:.2f}")
-    c4.metric("RevPAR medio anno", f"€ {mean_revpar:.2f}")
-
-    # KPI MENSILI dal baseline
-    st.markdown("### 📊 Mese — baseline")
-    mm = monthly_kpi(df_year)
-    st.dataframe(
-        mm.rename(columns={
-            "month": "Mese",
-            "revenue_total": "Revenue",
-            "rooms_sold": "Notti vendute",
-            "adr": "ADR medio",
-            "revpar": "RevPAR medio",
-        }),
-        use_container_width=True,
-        hide_index=True,
-    )
-else:
-    st.info(f"Nessun baseline per **{prop_key}** anno **{year_sel}**. Carica i file in `/srv/ihosp/baseline/{prop_key}/`.")
-# === FINE BASELINE FALLBACK ===
-
-# --- Pick-up: prossimi 11 mesi (usa l’ultimo snapshot disponibile) ---
-try:
-    label_prop = struttura_sel  # variabile già usata per la select "Struttura"
-except NameError:
-    label_prop = st.session_state.get("struttura_sel") or st.session_state.get("selected_property") or ""
-
-# Mappatura semplice label UI -> cartella storage
-lab = str(label_prop).lower()
-if "lavagnini" in lab:
-    prop_key = "Lavagnini"
-elif "terrazza" in lab:
-    prop_key = "La_Terrazza"
-else:
-    prop_key = str(label_prop)
-
-render_pickup_next_11_months(prop_key)
-# --- fine sezione pick-up 11 mesi ---
 
 # -----------------------------------------------------------------------------
 # (segue tutto il resto della pagina: KPI mensili, tabelle, grafici…)
