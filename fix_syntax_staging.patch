@@ -1,0 +1,30 @@
+diff --git a/streamlit_app_staging.py b/streamlit_app_staging.py
+index 0000000..1111111 100644
+--- a/streamlit_app_staging.py
++++ b/streamlit_app_staging.py
+@@ -1,200 +1,200 @@
+ # (... contesto omesso ...)
+
+@@ def index_url(structure: str, year: int) -> str:
+-    return f"{CDN_BASE}/Forecast/{quote(structure, safe=)}/{year}/index.json"
++    return f"{CDN_BASE}/Forecast/{quote(structure, safe='')}/{year}/index.json"
+
+@@ # (se nel file c’è anche la costruzione diretta della URL con requests.utils.quote)
+-idx_url = f"{CDN_BASE}/Forecast/{requests.utils.quote(structure,safe=)}/{int(year)}/index.json"
++idx_url = f"{CDN_BASE}/Forecast/{requests.utils.quote(structure, safe='')}/{int(year)}/index.json"
+
+@@
+-                st.caption("Percorso: inbox_forecasts/<Struttura>/<Anno>/")
+-                # --- DevLab CALL: inbox manager ---
+-                try:
+-                    _devlab_inbox_manager(st, locals().get("prop_sel"), locals().get("year_sel"))
+-              except Exception as e:
+-                  st.warning(f"Inbox manager error: {e}")
++                st.caption("Percorso: inbox_forecasts/<Struttura>/<Anno>/")
++                # --- DevLab CALL: inbox manager ---
++                try:
++                    _devlab_inbox_manager(st, locals().get("prop_sel"), locals().get("year_sel"))
++                except Exception as e:
++                    st.warning(f"Inbox manager error: {e}")
+
+ # (... contesto omesso ...)
