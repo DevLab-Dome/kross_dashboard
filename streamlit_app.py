@@ -43,13 +43,16 @@ def read_xlsx_http(url: str) -> pd.DataFrame:
     content = http_get(url).content
     return pd.read_excel(BytesIO(content))
 
+from urllib.parse import quote  # deve stare in testa al file (se c'è già, lascialo)
+
 def index_url(structure: str, year: int) -> str:
-    # quote con safe='' (nessun carattere lasciato grezzo)
+    # costruisce l'URL dell'index dei forecast su DO Spaces
     return f"{CDN_BASE}/Forecast/{quote(structure, safe='')}/{year}/index.json"
 
 def latest_forecast_url(structure: str, year: int):
+    # legge l'index.json e restituisce il primo URL (ultimo forecast)
     try:
-        data = http_get(index_url(structure, year)).json()
+        data = requests.get(index_url(structure, year), timeout=30).json()
         files = data.get("files", [])
         return files[0] if files else None
     except Exception:
